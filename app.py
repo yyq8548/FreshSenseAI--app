@@ -2,10 +2,12 @@ import streamlit as st
 from PIL import Image
 
 from agent.fruit_agent import FruitScannerAgent
+from desktop.presenter import supported_scope_text
 from utils.config import (
     APP_ICON,
     APP_LAYOUT,
     APP_TITLE,
+    FRUIT_CATALOG_PATH,
     KNOWLEDGE_BASE_PATH,
     MODEL_PATH,
     SAFETY_NOTICE,
@@ -15,6 +17,7 @@ from utils.startup import StartupValidationError, validate_startup
 st.set_page_config(page_title=APP_TITLE, page_icon=APP_ICON, layout=APP_LAYOUT)
 st.title(f"{APP_ICON} {APP_TITLE}")
 st.caption("Agentic computer vision assistant for produce quality assessment")
+st.info(supported_scope_text())
 st.warning(SAFETY_NOTICE)
 
 st.write(
@@ -23,8 +26,12 @@ st.write(
 )
 
 try:
-    validate_startup(MODEL_PATH, KNOWLEDGE_BASE_PATH)
-    agent = FruitScannerAgent(model_path=MODEL_PATH)
+    validate_startup(MODEL_PATH, KNOWLEDGE_BASE_PATH, FRUIT_CATALOG_PATH)
+    agent = FruitScannerAgent(
+        model_path=MODEL_PATH,
+        catalog_path=FRUIT_CATALOG_PATH,
+        knowledge_base_path=KNOWLEDGE_BASE_PATH,
+    )
 except (StartupValidationError, RuntimeError):
     st.error(
         "FreshSense is temporarily unavailable because its vision model or runtime "
@@ -52,7 +59,10 @@ if uploaded_file:
         st.write(f"**Advisory Only:** Yes — scene analysis does not block inference.")
 
     st.subheader("Prediction")
-    if state.prediction:
+    if state.decision == "uncertain_input":
+        st.write("**Result:** Unsupported or uncertain photo")
+        st.write("The tentative model class was withheld.")
+    elif state.prediction:
         st.write(f"**Class:** {state.prediction.class_name}")
         st.write(f"**Confidence:** {state.prediction.confidence:.2%}")
     else:

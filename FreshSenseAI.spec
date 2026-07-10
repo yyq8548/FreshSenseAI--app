@@ -10,6 +10,7 @@ a = Analysis(
     binaries=tensorflow_binaries,
     datas=[
         ("models/densenet201.h5", "models"),
+        ("data/fruit_catalog.json", "data"),
         ("data/food_knowledge_base.json", "data"),
     ],
     hiddenimports=["h5py", "keras", "tensorflow"],

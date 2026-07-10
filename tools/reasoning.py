@@ -1,4 +1,6 @@
 from agent.state import AgentState, ReasoningResult
+from utils.config import FRUIT_CATALOG_PATH
+from utils.fruit_catalog import FruitCatalog, load_fruit_catalog
 
 
 class RuleBasedReasoningTool:
@@ -8,6 +10,13 @@ class RuleBasedReasoningTool:
     This tool can later be replaced by an LLMReasoningTool while keeping
     the same AgentState interface.
     """
+
+    def __init__(
+        self,
+        catalog: FruitCatalog | None = None,
+        catalog_path: str = FRUIT_CATALOG_PATH,
+    ) -> None:
+        self.catalog = catalog or load_fruit_catalog(catalog_path)
 
     def run(self, state: AgentState) -> AgentState:
         if state.prediction is None:
@@ -22,9 +31,10 @@ class RuleBasedReasoningTool:
 
         label = state.prediction.class_name.lower()
         confidence = state.prediction.confidence
-        is_rotten = "rotten" in label
-
-        fruit_type = self._extract_fruit_type(label)
+        class_definition = self.catalog.class_for_label(label)
+        fruit = self.catalog.fruits[class_definition.fruit_id]
+        is_rotten = class_definition.freshness == "rotten"
+        fruit_type = fruit.display_name.lower()
 
         if is_rotten:
             explanation = (
@@ -41,8 +51,8 @@ class RuleBasedReasoningTool:
                 f"{confidence:.2%} confidence. The visible features are more consistent "
                 "with fresh produce than spoiled produce."
             )
-            shelf_life = self._estimate_shelf_life(fruit_type)
-            storage = self._storage_advice(fruit_type)
+            shelf_life = fruit.fresh_shelf_life
+            storage = fruit.fresh_storage_advice
             risk = "low" if confidence >= 0.90 else "medium"
 
         if state.quality:
@@ -59,30 +69,3 @@ class RuleBasedReasoningTool:
         )
         state.add_trace("RuleBasedReasoningTool generated structured reasoning.")
         return state
-
-    def _extract_fruit_type(self, label: str) -> str:
-        if "apple" in label:
-            return "apple"
-        if "banana" in label:
-            return "banana"
-        if "orange" in label:
-            return "orange"
-        return "fruit"
-
-    def _estimate_shelf_life(self, fruit_type: str) -> str:
-        if fruit_type == "banana":
-            return "2-5 days at room temperature"
-        if fruit_type == "apple":
-            return "5-7 days at room temperature, longer if refrigerated"
-        if fruit_type == "orange":
-            return "5-10 days at room temperature, longer if refrigerated"
-        return "Several days depending on storage conditions"
-
-    def _storage_advice(self, fruit_type: str) -> str:
-        if fruit_type == "banana":
-            return "Store at room temperature and away from direct sunlight."
-        if fruit_type == "apple":
-            return "Store in a cool place or refrigerate to extend freshness."
-        if fruit_type == "orange":
-            return "Store in a cool, dry place or refrigerate for longer shelf life."
-        return "Store in a cool, dry environment."

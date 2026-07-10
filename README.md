@@ -197,6 +197,57 @@ overridden with `FRESHSENSE_KNOWLEDGE_BASE_PATH`. Both assets are validated at
 startup. The application will not generate a placeholder prediction when the
 model cannot be loaded.
 
+## Configuration-driven fruit support
+
+Supported fruits and model output labels are defined in
+`data/fruit_catalog.json`. The catalog is the single source of truth for:
+
+- the exact model-output class order;
+- each class's fruit and fresh/rotten state;
+- user-facing fruit names;
+- fresh shelf-life estimates; and
+- fresh storage guidance.
+
+The catalog can be overridden with `FRESHSENSE_FRUIT_CATALOG_PATH`. FreshSense
+validates it at startup and fails closed when labels are duplicated, a fruit is
+missing either its fresh or rotten class, a class references an unknown fruit,
+or the knowledge base has no entry for a configured fruit.
+
+To add a fruit:
+
+1. Train or fine-tune a model containing fresh and rotten outputs for the new
+   fruit.
+2. Add those labels to the catalog's `classes` list in the exact order returned
+   by the model.
+3. Add the fruit's display name, shelf life, and storage guidance to `fruits`.
+4. Add at least one reviewed entry for the fruit to
+   `data/food_knowledge_base.json`.
+5. Run `pytest` and rebuild the desktop application.
+
+No inference, retrieval, reasoning, recommendation, or desktop presentation
+code needs to be rewritten for the new fruit. A newly trained model is still
+required because configuration cannot add visual recognition by itself.
+
+## Unsupported and uncertain photos
+
+FreshSense exposes a dedicated **Unsupported or uncertain photo** result when
+the prediction does not pass either of these application-level gates:
+
+- minimum model confidence (`MIN_CONFIDENCE`); or
+- minimum separation between the two most likely classes
+  (`MIN_PREDICTION_MARGIN`).
+
+For these results, FreshSense withholds the tentative class and does not
+generate fruit-specific shelf-life or storage guidance. The desktop and
+Streamlit interfaces also state that the current model supports one apple,
+banana, or orange fruit type per photo.
+
+These gates reduce ambiguous results but are not a general non-fruit detector.
+A photograph outside the training distribution can still receive a high
+softmax score. Production-grade out-of-distribution rejection requires a
+reviewed negative-image test set and either a dedicated detector or a model
+trained with explicit unsupported examples.
+
 ## Enable GPT‑5
 
 ``` bash

@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "classes": [
+    {"label": "freshapples", "fruit": "apple", "freshness": "fresh"},
+    {"label": "freshbanana", "fruit": "banana", "freshness": "fresh"},
+    {"label": "freshoranges", "fruit": "orange", "freshness": "fresh"},
+    {"label": "rottenapples", "fruit": "apple", "freshness": "rotten"},
+    {"label": "rottenbanana", "fruit": "banana", "freshness": "rotten"},
+    {"label": "rottenoranges", "fruit": "orange", "freshness": "rotten"}
+  ],
+  "fruits": [
+    {
+      "id": "apple",
+      "display_name": "Apple",
+      "fresh_shelf_life": "5-7 days at room temperature, longer if refrigerated",
+      "fresh_storage_advice": "Store in a cool place or refrigerate to extend freshness."
+    },
+    {
+      "id": "banana",
+      "display_name": "Banana",
+      "fresh_shelf_life": "2-5 days at room temperature",
+      "fresh_storage_advice": "Store at room temperature and away from direct sunlight."
+    },
+    {
+      "id": "orange",
+      "display_name": "Orange",
+      "fresh_shelf_life": "5-10 days at room temperature, longer if refrigerated",
+      "fresh_storage_advice": "Store in a cool, dry place or refrigerate for longer shelf life."
+    }
+  ]
+}

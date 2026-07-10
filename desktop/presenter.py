@@ -1,17 +1,48 @@
 """Presentation helpers kept independent from the Qt runtime."""
 
 from agent.state import AgentState
+from utils.config import FRUIT_CATALOG_PATH
+from utils.fruit_catalog import FruitCatalog, FruitCatalogError, load_fruit_catalog
 
 
-def humanize_class_name(class_name: str) -> str:
-    normalized = class_name.lower()
-    freshness = "Rotten" if normalized.startswith("rotten") else "Fresh"
-    fruit = normalized.removeprefix("rotten").removeprefix("fresh")
-    names = {"apples": "Apple", "banana": "Banana", "oranges": "Orange"}
-    return f"{freshness} {names.get(fruit, fruit.title())}"
+def humanize_class_name(
+    class_name: str,
+    catalog: FruitCatalog | None = None,
+) -> str:
+    active_catalog = catalog or load_fruit_catalog(FRUIT_CATALOG_PATH)
+    return active_catalog.display_name_for_label(class_name)
 
 
-def result_summary(state: AgentState) -> dict[str, str]:
+def supported_scope_text(catalog: FruitCatalog | None = None) -> str:
+    try:
+        active_catalog = catalog or load_fruit_catalog(FRUIT_CATALOG_PATH)
+    except FruitCatalogError:
+        return "Supported fruit list unavailable until startup validation completes."
+    names = ", ".join(fruit.display_name for fruit in active_catalog.fruits.values())
+    return f"Supported fruits: {names}. Use one fruit type per photo."
+
+
+def result_summary(
+    state: AgentState,
+    catalog: FruitCatalog | None = None,
+) -> dict[str, str]:
+    if state.decision == "uncertain_input":
+        warnings = _warning_text(state)
+        details = (
+            "The tentative model class was withheld because the result did not pass "
+            "FreshSense's confidence checks. This can happen with an unsupported image "
+            "or an unclear photo."
+        )
+        if warnings:
+            details = f"{details}\n\nPhoto guidance:\n{warnings}"
+        return {
+            "title": "Unsupported or uncertain photo",
+            "confidence": "No supported result",
+            "risk": "Unknown",
+            "recommendation": state.recommendation,
+            "details": details,
+        }
+
     if state.prediction is None:
         return {
             "title": "Photo retake needed",
@@ -28,7 +59,7 @@ def result_summary(state: AgentState) -> dict[str, str]:
         details = f"{details}\n\nPhoto guidance:\n{warnings}".strip()
 
     return {
-        "title": humanize_class_name(state.prediction.class_name),
+        "title": humanize_class_name(state.prediction.class_name, catalog=catalog),
         "confidence": f"{state.prediction.confidence:.1%} model confidence",
         "risk": (reasoning.risk_level.title() if reasoning else "Unknown"),
         "recommendation": state.recommendation,

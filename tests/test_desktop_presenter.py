@@ -1,7 +1,8 @@
 from PIL import Image
 
 from agent.state import AgentState, PredictionResult, ReasoningResult
-from desktop.presenter import humanize_class_name, result_summary
+from desktop.presenter import humanize_class_name, result_summary, supported_scope_text
+from utils.fruit_catalog import parse_fruit_catalog
 
 
 def test_humanize_class_names():
@@ -38,3 +39,48 @@ def test_result_summary_handles_no_prediction():
 
     assert summary["title"] == "Photo retake needed"
     assert summary["confidence"] == "No reliable prediction"
+
+
+def test_result_summary_hides_tentative_uncertain_class():
+    state = AgentState(image=Image.new("RGB", (224, 224)))
+    state.prediction = PredictionResult("freshbanana", 0.55, [0.55, 0.45])
+    state.decision = "uncertain_input"
+    state.recommendation = "Try another supported photo."
+    state.add_warning("The prediction was ambiguous.")
+
+    summary = result_summary(state)
+
+    assert summary["title"] == "Unsupported or uncertain photo"
+    assert summary["confidence"] == "No supported result"
+    assert "Fresh Banana" not in summary.values()
+    assert "withheld" in summary["details"]
+
+
+def test_supported_scope_is_derived_from_catalog():
+    text = supported_scope_text()
+
+    assert "Apple" in text
+    assert "Banana" in text
+    assert "Orange" in text
+
+
+def test_humanize_uses_configured_new_fruit_name():
+    catalog = parse_fruit_catalog(
+        {
+            "schema_version": 1,
+            "classes": [
+                {"label": "freshdragonfruit", "fruit": "dragonfruit", "freshness": "fresh"},
+                {"label": "rottendragonfruit", "fruit": "dragonfruit", "freshness": "rotten"},
+            ],
+            "fruits": [
+                {
+                    "id": "dragonfruit",
+                    "display_name": "Dragon Fruit",
+                    "fresh_shelf_life": "Configured shelf life",
+                    "fresh_storage_advice": "Configured storage advice.",
+                }
+            ],
+        }
+    )
+
+    assert humanize_class_name("freshdragonfruit", catalog=catalog) == "Fresh Dragon Fruit"

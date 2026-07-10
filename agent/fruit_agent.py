@@ -9,21 +9,32 @@ from tools.confidence import ConfidenceTool
 from tools.rag import FoodKnowledgeRetriever
 from tools.llm_reasoning import LLMReasoningTool
 from tools.recommendation import RecommendationTool
-from utils.config import MIN_CONFIDENCE
+from utils.config import FRUIT_CATALOG_PATH, KNOWLEDGE_BASE_PATH, MIN_CONFIDENCE
+from utils.fruit_catalog import load_fruit_catalog
 
 
 class FruitScannerAgent:
     """Tool-orchestrating agent for fruit freshness analysis."""
 
-    def __init__(self, model_path: str, min_confidence: float = MIN_CONFIDENCE):
+    def __init__(
+        self,
+        model_path: str,
+        min_confidence: float = MIN_CONFIDENCE,
+        catalog_path: str = FRUIT_CATALOG_PATH,
+        knowledge_base_path: str = KNOWLEDGE_BASE_PATH,
+    ):
+        self.catalog = load_fruit_catalog(catalog_path)
         self.planner = Planner()
         self.quality_tool = ImageQualityTool()
         self.scene_tool = SceneAnalysisTool()
-        self.vision_tool = DenseNetVisionTool(model_path=model_path)
+        self.vision_tool = DenseNetVisionTool(model_path=model_path, catalog=self.catalog)
         self.confidence_tool = ConfidenceTool(min_confidence=min_confidence)
-        self.retriever_tool = FoodKnowledgeRetriever()
-        self.reasoning_tool = LLMReasoningTool()
-        self.recommendation_tool = RecommendationTool()
+        self.retriever_tool = FoodKnowledgeRetriever(
+            knowledge_base_path=knowledge_base_path,
+            catalog=self.catalog,
+        )
+        self.reasoning_tool = LLMReasoningTool(catalog=self.catalog)
+        self.recommendation_tool = RecommendationTool(catalog=self.catalog)
 
     def run(self, image: Image.Image) -> AgentState:
         state = AgentState(image=image)
@@ -51,12 +62,9 @@ class FruitScannerAgent:
         next_action = self.planner.plan_after_inference(state)
         state.add_trace(f"Planner selected next action after inference: {next_action}.")
 
-        if next_action == "request_retake":
-            state.decision = "retake_photo"
-            state.status = "low_confidence"
-            state = self.retriever_tool.run(state)
-            state = self.reasoning_tool.run(state)
+        if next_action == "return_uncertain_result":
             state = self.recommendation_tool.run(state)
+            state.add_trace("Agent returned an uncertainty result without fruit guidance.")
             return state
 
         state = self.retriever_tool.run(state)

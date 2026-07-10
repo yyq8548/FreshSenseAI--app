@@ -2,14 +2,21 @@ import numpy as np
 from PIL import Image
 
 from agent.state import AgentState, PredictionResult
-from utils.config import CLASS_NAMES, IMAGE_SIZE
+from utils.config import FRUIT_CATALOG_PATH, IMAGE_SIZE
+from utils.fruit_catalog import FruitCatalog, load_fruit_catalog
 
 
 class DenseNetVisionTool:
     """Loads DenseNet201 and performs fruit freshness inference."""
 
-    def __init__(self, model_path: str):
+    def __init__(
+        self,
+        model_path: str,
+        catalog: FruitCatalog | None = None,
+        catalog_path: str = FRUIT_CATALOG_PATH,
+    ):
         self.model_path = model_path
+        self.catalog = catalog or load_fruit_catalog(catalog_path)
         try:
             from tensorflow.keras.models import load_model
 
@@ -27,11 +34,11 @@ class DenseNetVisionTool:
         x = self._preprocess(state.image)
 
         probs = self.model.predict(x, verbose=0)[0]
-        if len(probs) != len(CLASS_NAMES):
+        if len(probs) != len(self.catalog.class_names):
             raise RuntimeError("Vision model output does not match configured classes.")
         idx = int(np.argmax(probs))
         prediction = PredictionResult(
-            class_name=CLASS_NAMES[idx],
+            class_name=self.catalog.class_names[idx],
             confidence=float(probs[idx]),
             raw_probabilities=probs.tolist(),
         )

@@ -5,7 +5,8 @@ from collections import Counter
 from typing import Dict, List
 
 from agent.state import AgentState, RetrievalResult
-from utils.config import KNOWLEDGE_BASE_PATH, RAG_TOP_K
+from utils.config import FRUIT_CATALOG_PATH, KNOWLEDGE_BASE_PATH, RAG_TOP_K
+from utils.fruit_catalog import FruitCatalog, load_fruit_catalog
 
 
 class FoodKnowledgeRetriever:
@@ -17,9 +18,16 @@ class FoodKnowledgeRetriever:
     search using embeddings.
     """
 
-    def __init__(self, knowledge_base_path: str = KNOWLEDGE_BASE_PATH, top_k: int = RAG_TOP_K):
+    def __init__(
+        self,
+        knowledge_base_path: str = KNOWLEDGE_BASE_PATH,
+        top_k: int = RAG_TOP_K,
+        catalog: FruitCatalog | None = None,
+        catalog_path: str = FRUIT_CATALOG_PATH,
+    ):
         self.knowledge_base_path = knowledge_base_path
         self.top_k = top_k
+        self.catalog = catalog or load_fruit_catalog(catalog_path)
         self.documents = self._load_documents()
 
     def run(self, state: AgentState) -> AgentState:
@@ -68,25 +76,17 @@ class FoodKnowledgeRetriever:
             return json.load(f)
 
     def _build_query(self, state: AgentState) -> str:
-        if state.prediction:
-            label = state.prediction.class_name
-        else:
-            label = "general fruit"
+        if state.prediction is None:
+            return "general fruit storage shelf life food safety spoilage"
 
-        freshness = "rotten" if "rotten" in label.lower() else "fresh"
-        fruit_type = self._extract_fruit_type(label)
+        class_definition = self.catalog.class_for_label(state.prediction.class_name)
+        freshness = class_definition.freshness
+        fruit_type = class_definition.fruit_id
 
         return f"{fruit_type} {freshness} storage shelf life food safety spoilage"
 
     def _extract_fruit_type(self, label: str) -> str:
-        label = label.lower()
-        if "banana" in label:
-            return "banana"
-        if "apple" in label:
-            return "apple"
-        if "orange" in label:
-            return "orange"
-        return "general"
+        return self.catalog.class_for_label(label).fruit_id
 
     def _tokenize(self, text: str) -> List[str]:
         return re.findall(r"[a-zA-Z]+", text.lower())
