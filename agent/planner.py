@@ -1,5 +1,4 @@
 from agent.state import AgentState
-from utils.config import MIN_CONFIDENCE
 
 
 class Planner:
@@ -24,7 +23,10 @@ class Planner:
         if state.prediction is None:
             return "request_retake"
 
-        if state.prediction.confidence < MIN_CONFIDENCE:
+        if state.decision == "uncertain_input":
+            return "return_uncertain_result"
+
+        if state.decision != "accept_prediction":
             return "request_retake"
 
         return "generate_recommendation"

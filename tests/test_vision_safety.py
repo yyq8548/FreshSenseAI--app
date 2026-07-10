@@ -7,6 +7,7 @@ from PIL import Image
 
 from agent.state import AgentState
 from tools.vision import DenseNetVisionTool
+from utils.fruit_catalog import parse_fruit_catalog
 
 
 def _install_fake_tensorflow(monkeypatch, model):
@@ -66,3 +67,35 @@ def test_valid_model_prediction_is_used(monkeypatch):
     assert state.prediction.class_name == "freshbanana"
     assert state.prediction.confidence == pytest.approx(0.92)
     assert all("demo" not in step.lower() for step in state.trace)
+
+
+def test_model_output_order_comes_from_injected_catalog(monkeypatch):
+    class TwoClassModel:
+        def predict(self, _input, verbose=0):
+            return np.array([[0.20, 0.80]])
+
+    catalog = parse_fruit_catalog(
+        {
+            "schema_version": 1,
+            "classes": [
+                {"label": "freshmango", "fruit": "mango", "freshness": "fresh"},
+                {"label": "rottenmango", "fruit": "mango", "freshness": "rotten"},
+            ],
+            "fruits": [
+                {
+                    "id": "mango",
+                    "display_name": "Mango",
+                    "fresh_shelf_life": "3-5 days",
+                    "fresh_storage_advice": "Store at room temperature.",
+                }
+            ],
+        }
+    )
+    _install_fake_tensorflow(monkeypatch, TwoClassModel())
+
+    tool = DenseNetVisionTool("model.h5", catalog=catalog)
+    state = tool.run(AgentState(image=Image.new("RGB", (224, 224))))
+
+    assert state.prediction is not None
+    assert state.prediction.class_name == "rottenmango"
+    assert state.prediction.confidence == pytest.approx(0.80)

@@ -54,14 +54,15 @@ def test_planner_runs_vision_for_valid_scene():
     assert Planner().plan_after_scene_analysis(state) == "run_vision"
 
 
-def test_planner_requests_retake_for_low_confidence():
+def test_planner_returns_uncertain_result_after_confidence_gate():
     state = AgentState(image=Image.new("RGB", (224, 224), color="white"))
     state.prediction = PredictionResult(
         class_name="freshapples",
         confidence=0.45,
         raw_probabilities=[],
     )
-    assert Planner().plan_after_inference(state) == "request_retake"
+    state.decision = "uncertain_input"
+    assert Planner().plan_after_inference(state) == "return_uncertain_result"
 
 
 def test_planner_generates_recommendation_for_high_confidence():
@@ -71,4 +72,5 @@ def test_planner_generates_recommendation_for_high_confidence():
         confidence=0.95,
         raw_probabilities=[],
     )
+    state.decision = "accept_prediction"
     assert Planner().plan_after_inference(state) == "generate_recommendation"

@@ -3,7 +3,8 @@ import os
 
 from agent.state import AgentState, ReasoningResult
 from tools.reasoning import RuleBasedReasoningTool
-from utils.config import LLM_MODEL, OPENAI_API_KEY_ENV, USE_LLM_REASONING
+from utils.config import FRUIT_CATALOG_PATH, LLM_MODEL, OPENAI_API_KEY_ENV, USE_LLM_REASONING
+from utils.fruit_catalog import FruitCatalog, load_fruit_catalog
 
 
 class LLMReasoningTool:
@@ -14,9 +15,15 @@ class LLMReasoningTool:
     to RuleBasedReasoningTool so the application never breaks.
     """
 
-    def __init__(self, model: str = LLM_MODEL):
+    def __init__(
+        self,
+        model: str = LLM_MODEL,
+        catalog: FruitCatalog | None = None,
+        catalog_path: str = FRUIT_CATALOG_PATH,
+    ):
         self.model = model
-        self.fallback_tool = RuleBasedReasoningTool()
+        self.catalog = catalog or load_fruit_catalog(catalog_path)
+        self.fallback_tool = RuleBasedReasoningTool(catalog=self.catalog)
 
     def run(self, state: AgentState) -> AgentState:
         if not USE_LLM_REASONING:
@@ -85,6 +92,9 @@ class LLMReasoningTool:
 
     def _build_payload(self, state: AgentState) -> dict:
         prediction = state.prediction
+        class_definition = (
+            self.catalog.class_for_label(prediction.class_name) if prediction else None
+        )
         quality = state.quality
         scene = state.scene
         retrieved_docs = state.retrieval.documents if state.retrieval else []
@@ -93,6 +103,8 @@ class LLMReasoningTool:
             "prediction": {
                 "class_name": prediction.class_name if prediction else None,
                 "confidence": prediction.confidence if prediction else None,
+                "fruit": class_definition.fruit_id if class_definition else None,
+                "freshness": class_definition.freshness if class_definition else None,
             },
             "image_quality": {
                 "brightness": quality.brightness if quality else None,

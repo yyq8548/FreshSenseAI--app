@@ -28,8 +28,8 @@ from PySide6.QtWidgets import (
 )
 
 from agent.fruit_agent import FruitScannerAgent
-from desktop.presenter import result_summary
-from utils.config import KNOWLEDGE_BASE_PATH, MODEL_PATH, SAFETY_NOTICE
+from desktop.presenter import result_summary, supported_scope_text
+from utils.config import FRUIT_CATALOG_PATH, KNOWLEDGE_BASE_PATH, MODEL_PATH, SAFETY_NOTICE
 from utils.startup import StartupValidationError, validate_startup
 
 
@@ -65,8 +65,14 @@ class ModelLoader(QObject):
 
     def run(self) -> None:
         try:
-            validate_startup(MODEL_PATH, KNOWLEDGE_BASE_PATH)
-            self.loaded.emit(FruitScannerAgent(model_path=MODEL_PATH))
+            validate_startup(MODEL_PATH, KNOWLEDGE_BASE_PATH, FRUIT_CATALOG_PATH)
+            self.loaded.emit(
+                FruitScannerAgent(
+                    model_path=MODEL_PATH,
+                    catalog_path=FRUIT_CATALOG_PATH,
+                    knowledge_base_path=KNOWLEDGE_BASE_PATH,
+                )
+            )
         except (StartupValidationError, RuntimeError) as exc:
             self.failed.emit(str(exc))
         finally:
@@ -121,8 +127,11 @@ class MainWindow(QMainWindow):
         title.setObjectName("title")
         subtitle = QLabel("Private, on-device fruit freshness guidance")
         subtitle.setObjectName("subtitle")
+        scope = QLabel(supported_scope_text())
+        scope.setObjectName("scope")
         root_layout.addWidget(title)
         root_layout.addWidget(subtitle)
+        root_layout.addWidget(scope)
 
         notice = QLabel(SAFETY_NOTICE)
         notice.setWordWrap(True)
@@ -282,7 +291,10 @@ class MainWindow(QMainWindow):
         thread.start()
 
     def _show_result(self, state: object) -> None:
-        summary = result_summary(state)
+        summary = result_summary(
+            state,
+            catalog=self.agent.catalog if self.agent else None,
+        )
         self.result_title.setText(summary["title"])
         self.confidence.setText(
             f"{summary['confidence']}  ·  Risk guidance: {summary['risk']}"
@@ -312,6 +324,7 @@ def _stylesheet() -> str:
         QWidget { background: #F4F7F3; color: #17251C; font-family: "Segoe UI"; font-size: 14px; }
         QLabel#title { font-size: 30px; font-weight: 700; color: #163F27; }
         QLabel#subtitle { color: #587062; font-size: 15px; }
+        QLabel#scope { color: #315B40; font-size: 14px; font-weight: 600; }
         QLabel#safetyNotice { background: #FFF4D8; border: 1px solid #E7C66D; border-radius: 9px; padding: 11px 14px; color: #604B16; }
         QFrame#card { background: white; border: 1px solid #D8E2DA; border-radius: 14px; }
         QLabel#dropZone { background: #F8FAF8; border: 2px dashed #8EB79A; border-radius: 12px; color: #4B6854; font-size: 17px; }

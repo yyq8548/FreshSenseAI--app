@@ -2,6 +2,12 @@
 .venv*/
 __pycache__/
 *.pyc
+.pytest_cache/
+build/
+dist/
+work/
+outputs/
+*.log
 models/*.h5
 models/*.keras
 dataset/

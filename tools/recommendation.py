@@ -1,10 +1,37 @@
 from agent.state import AgentState
+from utils.config import FRUIT_CATALOG_PATH
+from utils.fruit_catalog import FruitCatalog, load_fruit_catalog
 
 
 class RecommendationTool:
     """Generates the final user-facing recommendation from the agent state."""
 
+    def __init__(
+        self,
+        catalog: FruitCatalog | None = None,
+        catalog_path: str = FRUIT_CATALOG_PATH,
+    ) -> None:
+        self.catalog = catalog or load_fruit_catalog(catalog_path)
+
     def run(self, state: AgentState) -> AgentState:
+        if state.decision == "uncertain_input":
+            supported_names = [
+                fruit.display_name.lower() for fruit in self.catalog.fruits.values()
+            ]
+            if len(supported_names) == 1:
+                supported = supported_names[0]
+            elif len(supported_names) == 2:
+                supported = f"{supported_names[0]} or {supported_names[1]}"
+            else:
+                supported = f"{', '.join(supported_names[:-1])}, or {supported_names[-1]}"
+            state.recommendation = (
+                "FreshSense could not produce a supported freshness result. "
+                f"It currently analyzes one clear {supported} photo at a time. "
+                "Try a closer, well-lit photo of a supported fruit."
+            )
+            state.add_trace("RecommendationTool generated uncertainty guidance.")
+            return state
+
         if state.decision == "retake_photo":
             state.recommendation = (
                 "Please retake the photo with brighter lighting, less blur, "
@@ -20,8 +47,9 @@ class RecommendationTool:
 
         label = state.prediction.class_name.lower()
         confidence = state.prediction.confidence
+        freshness = self.catalog.class_for_label(label).freshness
 
-        if "rotten" in label:
+        if freshness == "rotten":
             state.recommendation = (
                 f"The image shows visible patterns associated with rotten or low-quality fruit "
                 f"with {confidence:.2%} model confidence. Do not consume it when there are signs "

@@ -13,16 +13,8 @@ PROJECT_ROOT = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.par
 MODEL_PATH = os.getenv("FRESHSENSE_MODEL_PATH", str(PROJECT_ROOT / "models" / "densenet201.h5"))
 IMAGE_SIZE = (224, 224)
 
-CLASS_NAMES = [
-    "freshapples",
-    "freshbanana",
-    "freshoranges",
-    "rottenapples",
-    "rottenbanana",
-    "rottenoranges",
-]
-
 MIN_CONFIDENCE = 0.70
+MIN_PREDICTION_MARGIN = 0.15
 
 DARK_THRESHOLD = 60.0
 OVEREXPOSED_THRESHOLD = 235.0
@@ -41,6 +33,10 @@ OPENAI_API_KEY_ENV = "OPENAI_API_KEY"
 KNOWLEDGE_BASE_PATH = os.getenv(
     "FRESHSENSE_KNOWLEDGE_BASE_PATH",
     str(PROJECT_ROOT / "data" / "food_knowledge_base.json"),
+)
+FRUIT_CATALOG_PATH = os.getenv(
+    "FRESHSENSE_FRUIT_CATALOG_PATH",
+    str(PROJECT_ROOT / "data" / "fruit_catalog.json"),
 )
 RAG_TOP_K = 3
 
