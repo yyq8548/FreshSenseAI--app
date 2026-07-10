@@ -32,6 +32,10 @@ try:
         catalog_path=FRUIT_CATALOG_PATH,
         knowledge_base_path=KNOWLEDGE_BASE_PATH,
     )
+    if agent.retriever_tool.semantic_ready:
+        st.caption("Knowledge retrieval: local semantic embeddings")
+    else:
+        st.caption("Knowledge retrieval: keyword fallback")
 except (StartupValidationError, RuntimeError):
     st.error(
         "FreshSense is temporarily unavailable because its vision model or runtime "
@@ -71,8 +75,15 @@ if uploaded_file:
     st.subheader("Retrieved Knowledge")
     if state.retrieval and state.retrieval.documents:
         st.write(f"**Query:** {state.retrieval.query}")
+        st.write(
+            f"**Method:** {state.metadata.get('retrieval', {}).get('method', 'unknown')}"
+        )
         for doc in state.retrieval.documents:
-            st.markdown(f"- **{doc.get('id')}** ({doc.get('topic')}): {doc.get('text')}")
+            score = doc.get("retrieval_score")
+            score_text = f" · score {score:.3f}" if isinstance(score, (int, float)) else ""
+            st.markdown(
+                f"- **{doc.get('id')}** ({doc.get('topic')}{score_text}): {doc.get('text')}"
+            )
     else:
         st.write("No knowledge documents retrieved.")
 

@@ -6,3 +6,4 @@ numpy==1.26.4
 Pillow==11.2.1
 matplotlib==3.10.3
 openai==1.93.0
+fastembed==0.8.0

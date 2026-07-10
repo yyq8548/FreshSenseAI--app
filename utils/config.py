@@ -39,6 +39,20 @@ FRUIT_CATALOG_PATH = os.getenv(
     str(PROJECT_ROOT / "data" / "fruit_catalog.json"),
 )
 RAG_TOP_K = 3
+SEMANTIC_RAG_ENABLED = os.getenv("FRESHSENSE_SEMANTIC_RAG", "true").lower() == "true"
+EMBEDDING_MODEL_NAME = os.getenv(
+    "FRESHSENSE_EMBEDDING_MODEL",
+    "BAAI/bge-small-en-v1.5",
+)
+EMBEDDING_CACHE_DIR = os.getenv(
+    "FRESHSENSE_EMBEDDING_CACHE_DIR",
+    str(PROJECT_ROOT / "models" / "embedding_cache"),
+)
+# Production builds bundle the model and never need a first-run download.
+EMBEDDING_LOCAL_FILES_ONLY = (
+    os.getenv("FRESHSENSE_EMBEDDING_LOCAL_ONLY", "true").lower() == "true"
+)
+EMBEDDING_THREADS = 2
 
 # Safety copy is centralized so every user-facing surface presents the same
 # limitations. This application is decision support, not a food-safety test.

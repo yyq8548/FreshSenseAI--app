@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-from PyInstaller.utils.hooks import collect_dynamic_libs
+from PyInstaller.utils.hooks import collect_dynamic_libs, collect_submodules
 
 tensorflow_binaries = collect_dynamic_libs("tensorflow")
 
@@ -10,10 +10,18 @@ a = Analysis(
     binaries=tensorflow_binaries,
     datas=[
         ("models/densenet201.h5", "models"),
+        ("models/embedding_cache", "models/embedding_cache"),
         ("data/fruit_catalog.json", "data"),
         ("data/food_knowledge_base.json", "data"),
     ],
-    hiddenimports=["h5py", "keras", "tensorflow"],
+    hiddenimports=[
+        "h5py",
+        "keras",
+        "tensorflow",
+        "onnxruntime.capi._pybind_state",
+        "tokenizers",
+        *collect_submodules("fastembed"),
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

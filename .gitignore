@@ -10,6 +10,7 @@ outputs/
 *.log
 models/*.h5
 models/*.keras
+models/embedding_cache/
 dataset/
 *.h5
 *.keras

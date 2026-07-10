@@ -31,6 +31,38 @@ def test_result_summary_contains_safety_guidance():
     assert "Use a closer photo" in summary["details"]
 
 
+def test_result_summary_reports_semantic_retrieval():
+    state = AgentState(image=Image.new("RGB", (224, 224)))
+    state.prediction = PredictionResult("freshbanana", 0.93, [])
+    state.reasoning = ReasoningResult(
+        explanation="Visible features resemble fresh banana.",
+        shelf_life_estimate="2-5 days",
+        storage_advice="Store at room temperature.",
+        risk_level="low",
+    )
+    state.metadata["retrieval"] = {"method": "semantic"}
+
+    summary = result_summary(state)
+
+    assert "Knowledge retrieval: Local semantic embeddings." in summary["details"]
+
+
+def test_result_summary_reports_keyword_fallback():
+    state = AgentState(image=Image.new("RGB", (224, 224)))
+    state.prediction = PredictionResult("freshbanana", 0.93, [])
+    state.reasoning = ReasoningResult(
+        explanation="Visible features resemble fresh banana.",
+        shelf_life_estimate="2-5 days",
+        storage_advice="Store at room temperature.",
+        risk_level="low",
+    )
+    state.metadata["retrieval"] = {"method": "keyword_fallback"}
+
+    summary = result_summary(state)
+
+    assert "Knowledge retrieval: Keyword fallback." in summary["details"]
+
+
 def test_result_summary_handles_no_prediction():
     state = AgentState(image=Image.new("RGB", (224, 224)))
     state.recommendation = "Please retake the photo."
