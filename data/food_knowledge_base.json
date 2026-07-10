@@ -1,0 +1,56 @@
+[
+  {
+    "id": "banana_storage",
+    "fruit": "banana",
+    "topic": "storage",
+    "text": "Bananas are best stored at room temperature until ripe. Once ripe, they can be refrigerated to slow further ripening, although the peel may darken."
+  },
+  {
+    "id": "banana_overripe",
+    "fruit": "banana",
+    "topic": "food_safety",
+    "text": "Very overripe bananas may still be usable for baking or smoothies if there is no mold, leaking, fermented odor, or slimy texture. Bananas with signs of spoilage should be discarded."
+  },
+  {
+    "id": "banana_freezing",
+    "fruit": "banana",
+    "topic": "storage",
+    "text": "Peeled ripe bananas can be frozen for later use in smoothies or baking. Store them in an airtight container or freezer bag."
+  },
+  {
+    "id": "apple_storage",
+    "fruit": "apple",
+    "topic": "storage",
+    "text": "Apples generally last longer when stored in the refrigerator. Keep them away from strong-smelling foods and remove damaged apples to prevent spoilage from spreading."
+  },
+  {
+    "id": "apple_safety",
+    "fruit": "apple",
+    "topic": "food_safety",
+    "text": "Apples with mold, soft brown spots, leaking juice, or an off smell should be avoided. Small superficial blemishes may be cut away if the rest of the apple is firm and smells normal."
+  },
+  {
+    "id": "orange_storage",
+    "fruit": "orange",
+    "topic": "storage",
+    "text": "Oranges can be stored at room temperature for several days, but refrigeration helps extend freshness. Keep them dry to reduce mold growth."
+  },
+  {
+    "id": "orange_safety",
+    "fruit": "orange",
+    "topic": "food_safety",
+    "text": "Oranges with visible mold, soft collapsed areas, leaking liquid, or fermented odor should be discarded. Mold on citrus can spread beyond the visible surface."
+  },
+  {
+    "id": "general_photo_quality",
+    "fruit": "general",
+    "topic": "image_quality",
+    "text": "Fruit freshness models are more reliable when the fruit is centered, clearly visible, well lit, and not heavily blurred or obstructed."
+  },
+  {
+    "id": "general_spoilage",
+    "fruit": "general",
+    "topic": "food_safety",
+    "text": "Common signs of spoilage include mold, slimy texture, leaking liquid, severe discoloration, collapsed flesh, and sour or fermented odor."
+  }
+]

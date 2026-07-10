@@ -1,0 +1,8 @@
+# Direct production dependencies are pinned for reproducible builds.
+# Regenerate and review these pins as part of scheduled dependency maintenance.
+streamlit==1.46.1
+tensorflow==2.19.0
+numpy==1.26.4
+Pillow==11.2.1
+matplotlib==3.10.3
+openai==1.93.0
