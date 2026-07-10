@@ -28,6 +28,9 @@ from PySide6.QtWidgets import (
 )
 
 from agent.fruit_agent import FruitScannerAgent
+from agent.state import AgentState
+from desktop.history import HistoryStorageError, ScanHistoryRecord, ScanHistoryStore
+from desktop.history_dialog import HistoryDialog
 from desktop.presenter import result_summary, supported_scope_text
 from utils.config import FRUIT_CATALOG_PATH, KNOWLEDGE_BASE_PATH, MODEL_PATH, SAFETY_NOTICE
 from utils.startup import StartupValidationError, validate_startup
@@ -101,8 +104,9 @@ class AnalysisWorker(QObject):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self) -> None:
+    def __init__(self, history_store: ScanHistoryStore | None = None) -> None:
         super().__init__()
+        self.history_store = history_store or ScanHistoryStore()
         self.agent: FruitScannerAgent | None = None
         self.current_image: Image.Image | None = None
         self.current_path: str | None = None
@@ -154,6 +158,10 @@ class MainWindow(QMainWindow):
         choose_button = QPushButton("Choose photo")
         choose_button.clicked.connect(self.choose_image)
         left_layout.addWidget(choose_button)
+
+        history_button = QPushButton("View scan history")
+        history_button.clicked.connect(self.show_history)
+        left_layout.addWidget(history_button)
 
         self.analyze_button = QPushButton("Analyze freshness")
         self.analyze_button.setObjectName("primaryButton")
@@ -290,7 +298,7 @@ class MainWindow(QMainWindow):
         self._analysis_worker = worker
         thread.start()
 
-    def _show_result(self, state: object) -> None:
+    def _show_result(self, state: AgentState) -> None:
         summary = result_summary(
             state,
             catalog=self.agent.catalog if self.agent else None,
@@ -301,7 +309,39 @@ class MainWindow(QMainWindow):
         )
         self.recommendation.setText(summary["recommendation"])
         self.details.setText(summary["details"])
-        self.status.setText("Analysis complete")
+        history_saved = self._record_history(state, summary)
+        self.status.setText(
+            "Analysis complete"
+            if history_saved
+            else "Analysis complete · History was not saved"
+        )
+
+    def _record_history(self, state: AgentState, summary: dict[str, str]) -> bool:
+        if self.current_path is None:
+            return True
+        confidence = (
+            state.prediction.confidence
+            if state.decision == "accept_prediction" and state.prediction is not None
+            else None
+        )
+        try:
+            record = ScanHistoryRecord.create(
+                image_name=Path(self.current_path).name,
+                result_title=summary["title"],
+                confidence=confidence,
+                risk=summary["risk"],
+                decision=state.decision,
+                status=state.status,
+            )
+            self.history_store.add(record)
+        except HistoryStorageError:
+            state.add_trace("Desktop history could not be saved.")
+            return False
+        state.add_trace("Desktop history saved result metadata without the photo.")
+        return True
+
+    def show_history(self) -> None:
+        HistoryDialog(self.history_store, self).exec()
 
     def _analysis_failed(self, message: str) -> None:
         self.status.setText("Analysis failed")
