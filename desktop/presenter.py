@@ -57,6 +57,11 @@ def result_summary(
     warnings = _warning_text(state)
     if warnings:
         details = f"{details}\n\nPhoto guidance:\n{warnings}".strip()
+    retrieval_method = state.metadata.get("retrieval", {}).get("method")
+    if retrieval_method == "semantic":
+        details = f"{details}\n\nKnowledge retrieval: Local semantic embeddings.".strip()
+    elif retrieval_method == "keyword_fallback":
+        details = f"{details}\n\nKnowledge retrieval: Keyword fallback.".strip()
 
     return {
         "title": humanize_class_name(state.prediction.class_name, catalog=catalog),

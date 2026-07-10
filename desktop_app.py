@@ -231,7 +231,14 @@ class MainWindow(QMainWindow):
         self.progress.setRange(0, 1)
         self.progress.setValue(1)
         self.progress.hide()
-        self.status.setText("Model ready · Analysis stays on this computer")
+        if agent.retriever_tool.semantic_ready:
+            self.status.setText(
+                "Models ready · Analysis and semantic search stay on this computer"
+            )
+        else:
+            self.status.setText(
+                "Vision model ready · Semantic search unavailable; using keyword fallback"
+            )
         self._update_analyze_state()
 
     def _model_failed(self, message: str) -> None:

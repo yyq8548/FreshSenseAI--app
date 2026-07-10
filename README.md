@@ -58,7 +58,7 @@ flowchart TD
   📷 Image Quality    Blur, brightness and exposure detection
   🎯 Confidence       Confidence validation
   🤖 GPT‑5            Natural-language reasoning
-  📚 RAG              Food knowledge retrieval
+  📚 Semantic RAG     Local embedding-based knowledge retrieval
   🔍 Explainable AI   Grounded explanations with retrieved knowledge
   🖼 Sample Images     Built-in testing images
   🧪 Testing          PyTest + GitHub Actions
@@ -161,8 +161,13 @@ FreshSense-AI/
 python -m venv .venv
 source .venv/Scripts/activate
 pip install -r requirements.txt
+python scripts/prepare_embedding_model.py
 streamlit run app.py
 ```
+
+The preparation command downloads the pinned local text-embedding model once.
+After that, semantic retrieval runs on-device and does not require an internet
+connection.
 
 ## Windows desktop application
 
@@ -217,6 +222,44 @@ The knowledge base defaults to `data/food_knowledge_base.json` and can be
 overridden with `FRESHSENSE_KNOWLEDGE_BASE_PATH`. Both assets are validated at
 startup. The application will not generate a placeholder prediction when the
 model cannot be loaded.
+
+## Local semantic RAG
+
+FreshSense ranks the reviewed knowledge-base entries with dense text
+embeddings from `BAAI/bge-small-en-v1.5`. FastEmbed runs the model locally with
+ONNX Runtime, and cosine similarity selects the three passages that best match
+the predicted fruit, freshness state, storage, shelf-life, spoilage, and safety
+query.
+
+Retrieval is deliberately scoped before ranking: a supported prediction can
+retrieve documents for that fruit plus general safety guidance, while an
+uncertain result can retrieve only general guidance. Each retrieved document
+records its retrieval method and similarity score, and the desktop details view
+shows whether semantic retrieval was used.
+
+Prepare the local embedding assets during development with:
+
+``` powershell
+python scripts/prepare_embedding_model.py
+```
+
+The Windows build script runs this step automatically and bundles the embedding
+model in the application distribution. The app never sends photos, queries, or
+knowledge-base text to an embedding service. If the local embedding model is
+missing or cannot load, FreshSense continues with its deterministic keyword
+retriever and displays a fallback warning instead of silently changing modes.
+
+Semantic retrieval can be configured with:
+
+- `FRESHSENSE_SEMANTIC_RAG`: set to `false` to disable embeddings;
+- `FRESHSENSE_EMBEDDING_MODEL`: FastEmbed model identifier;
+- `FRESHSENSE_EMBEDDING_CACHE_DIR`: local model-cache directory; and
+- `FRESHSENSE_EMBEDDING_LOCAL_ONLY`: keep `true` in distributed builds to
+  prevent runtime downloads.
+
+This milestone uses in-memory cosine ranking because the curated knowledge base
+is small. A persistent vector database is a separate roadmap item and is not
+required for fully functioning semantic retrieval at the current scale.
 
 ## Configuration-driven fruit support
 
@@ -302,6 +345,8 @@ Every push automatically runs the test suite through GitHub Actions.
 -   Streamlit
 -   OpenAI GPT‑5
 -   Retrieval-Augmented Generation (RAG)
+-   FastEmbed / ONNX Runtime
+-   BAAI bge-small-en-v1.5 embeddings
 -   PyTest
 -   GitHub Actions
 -   Pillow
@@ -315,9 +360,10 @@ Every push automatically runs the test suite through GitHub Actions.
 -   ✅ Tool-based AI Agent
 -   ✅ GPT‑5 Reasoning
 -   ✅ Local RAG
--   ⏳ Embedding-based Semantic RAG
+-   ✅ Embedding-based Semantic RAG
 -   ⏳ Vector Database
--   ⏳ Conversation Memory
+-   ✅ Local scan memory
+-   ⏳ Multi-turn conversation memory
 -   ⏳ REST API
 -   ⏳ Cloud Deployment
 
