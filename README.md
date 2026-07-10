@@ -184,6 +184,27 @@ The distributable application is written to
 `dist/FreshSenseAI/FreshSenseAI.exe`. Ship the entire `FreshSenseAI` directory;
 end users do not install Python, TensorFlow, or a virtual environment.
 
+### Private local scan history
+
+The Windows desktop application keeps an optional recent-scan history on the
+user's computer. Use **View scan history** to review results, export them to
+CSV, or clear them after confirmation.
+
+FreshSense stores only:
+
+- scan date and time;
+- the image's base file name, never its full path;
+- the displayed result, confidence when accepted, risk, decision, and status.
+
+Photos are not copied or retained. Uncertain results do not store the tentative
+class or confidence. History is limited to the 200 newest records and is stored
+under `%LOCALAPPDATA%\FreshSense\scan_history.json` on Windows. Developers and
+managed installations can override this location with `FRESHSENSE_HISTORY_PATH`.
+
+The history file remains local unless the user explicitly chooses **Export
+CSV**. FreshSense does not upload scan history to GitHub, OpenAI, or a cloud
+service.
+
 FreshSense now fails closed when the configured model is missing or invalid.
 Before starting the app, provide a trained Keras model at
 `models/densenet201.h5`, or configure an absolute path:
