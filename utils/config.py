@@ -54,6 +54,12 @@ EMBEDDING_LOCAL_FILES_ONLY = (
 )
 EMBEDDING_THREADS = 2
 
+# REST API limits. Uploads are never retained by the application.
+API_MAX_UPLOAD_BYTES = int(
+    os.getenv("FRESHSENSE_API_MAX_UPLOAD_BYTES", str(10 * 1024 * 1024))
+)
+API_MAX_IMAGE_PIXELS = int(os.getenv("FRESHSENSE_API_MAX_IMAGE_PIXELS", "25000000"))
+
 # Safety copy is centralized so every user-facing surface presents the same
 # limitations. This application is decision support, not a food-safety test.
 SAFETY_NOTICE = (

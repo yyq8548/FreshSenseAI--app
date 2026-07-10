@@ -140,6 +140,7 @@ Refrigerate after ripening.
 
 ``` text
 FreshSense-AI/
+├── api/
 ├── agent/
 ├── tools/
 ├── utils/
@@ -188,6 +189,55 @@ powershell -ExecutionPolicy Bypass -File scripts/build_windows.ps1
 The distributable application is written to
 `dist/FreshSenseAI/FreshSenseAI.exe`. Ship the entire `FreshSenseAI` directory;
 end users do not install Python, TensorFlow, or a virtual environment.
+
+## Versioned REST API
+
+FreshSense includes a FastAPI service for web, mobile, automation, and future
+cloud clients. It reuses the same validated agent as the desktop application and
+loads the vision model and semantic retriever exactly once during each API
+process's startup lifespan.
+
+Install the production dependencies, prepare the local embedding model, and run
+one local API worker:
+
+``` powershell
+pip install -r requirements.txt
+python scripts/prepare_embedding_model.py
+python -m uvicorn api.main:app --host 127.0.0.1 --port 8000 --workers 1
+```
+
+Interactive OpenAPI documentation is available at `http://127.0.0.1:8000/docs`.
+The versioned endpoints are:
+
+- `GET /api/v1/health`: reports vision-model and semantic-retrieval readiness;
+- `POST /api/v1/analyze`: accepts one JPEG, PNG, or WebP image as multipart field
+  `file` and returns the prediction, confidence, image and scene assessments,
+  retrieved passages and scores, warnings, reasoning, and recommendation.
+
+Example requests:
+
+``` powershell
+curl.exe http://127.0.0.1:8000/api/v1/health
+curl.exe -F "file=@C:\path\to\banana.png;type=image/png" `
+  http://127.0.0.1:8000/api/v1/analyze
+```
+
+Replace the example path with an existing image. The API defaults to a 10 MiB
+encoded-file limit and a 25-million-pixel decoded-image limit. Configure these
+with `FRESHSENSE_API_MAX_UPLOAD_BYTES` and
+`FRESHSENSE_API_MAX_IMAGE_PIXELS`.
+
+The API accepts only declared JPEG, PNG, and WebP media types and verifies that
+the decoded format matches the declaration. It serializes inference through a
+shared lock because the agent and its model are shared across requests. Run a
+single worker per model instance; scale with separate service replicas when
+needed.
+
+FreshSense never creates an application copy of the uploaded photo or retains
+its filename. The multipart implementation may use short-lived operating-system
+temporary storage while parsing an upload; the API explicitly closes that upload
+before inference, allowing the temporary resource to be removed immediately.
+The decoded image is also closed after the response is serialized.
 
 ### Private local scan history
 
@@ -347,6 +397,7 @@ Every push automatically runs the test suite through GitHub Actions.
 -   Retrieval-Augmented Generation (RAG)
 -   FastEmbed / ONNX Runtime
 -   BAAI bge-small-en-v1.5 embeddings
+-   FastAPI / Uvicorn
 -   PyTest
 -   GitHub Actions
 -   Pillow
@@ -364,7 +415,7 @@ Every push automatically runs the test suite through GitHub Actions.
 -   ⏳ Vector Database
 -   ✅ Local scan memory
 -   ⏳ Multi-turn conversation memory
--   ⏳ REST API
+-   ✅ REST API
 -   ⏳ Cloud Deployment
 
 ------------------------------------------------------------------------
