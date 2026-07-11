@@ -145,6 +145,8 @@ def test_api_loads_one_shared_agent_and_reports_health():
         "semantic_model": "test/semantic-model",
         "supported_fruits": ["Apple", "Banana", "Orange"],
         "image_retention": False,
+        "authentication_required": False,
+        "rate_limit_per_minute": 30,
     }
 
 
@@ -182,6 +184,12 @@ def test_analyze_returns_prediction_retrieval_warnings_and_privacy_contract():
     }
     assert "banana.png" not in response.text
     assert fake_agent.run_count == 1
+    assert response.headers["x-ratelimit-limit"] == "30"
+    assert response.headers["x-ratelimit-remaining"] == "29"
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["x-frame-options"] == "DENY"
+    assert response.headers["x-request-id"]
     with pytest.raises(ValueError, match="closed image"):
         fake_agent.last_image.getpixel((0, 0))
 
@@ -288,6 +296,7 @@ def test_openapi_documents_versioned_endpoints_and_typed_contracts():
     schema = response.json()
     assert "/api/v1/health" in schema["paths"]
     assert "/api/v1/analyze" in schema["paths"]
+    assert "/api/v1/metrics" in schema["paths"]
     analyze = schema["paths"]["/api/v1/analyze"]["post"]
     assert "multipart/form-data" in analyze["requestBody"]["content"]
     assert analyze["responses"]["200"]["content"]["application/json"]["schema"] == {

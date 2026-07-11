@@ -34,6 +34,7 @@ from desktop.history_dialog import HistoryDialog
 from desktop.presenter import result_summary, supported_scope_text
 from utils.config import FRUIT_CATALOG_PATH, KNOWLEDGE_BASE_PATH, MODEL_PATH, SAFETY_NOTICE
 from utils.startup import StartupValidationError, validate_startup
+from utils.version import APP_VERSION
 
 
 IMAGE_FILTER = "Images (*.jpg *.jpeg *.png)"
@@ -118,7 +119,7 @@ class MainWindow(QMainWindow):
         self._load_model()
 
     def _build_ui(self) -> None:
-        self.setWindowTitle("FreshSense AI")
+        self.setWindowTitle(f"FreshSense AI {APP_VERSION}")
         self.resize(1120, 760)
         self.setMinimumSize(920, 640)
 

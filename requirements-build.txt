@@ -1,2 +1,7 @@
 -r requirements-desktop.txt
 pyinstaller==6.14.2
+pytest==8.4.1
+fastapi==0.139.0
+pydantic==2.13.4
+python-multipart==0.0.32
+httpx2==2.5.0

@@ -16,3 +16,4 @@ dataset/
 *.keras
 *.pt
 *.pth
+secrets/*.txt

@@ -59,6 +59,28 @@ API_MAX_UPLOAD_BYTES = int(
     os.getenv("FRESHSENSE_API_MAX_UPLOAD_BYTES", str(10 * 1024 * 1024))
 )
 API_MAX_IMAGE_PIXELS = int(os.getenv("FRESHSENSE_API_MAX_IMAGE_PIXELS", "25000000"))
+API_REQUIRE_API_KEY = os.getenv("FRESHSENSE_REQUIRE_API_KEY", "false").lower() == "true"
+API_KEY_FILE = os.getenv("FRESHSENSE_API_KEY_FILE")
+API_RATE_LIMIT_PER_MINUTE = int(
+    os.getenv("FRESHSENSE_API_RATE_LIMIT_PER_MINUTE", "30")
+)
+API_ALLOWED_HOSTS = tuple(
+    value.strip()
+    for value in os.getenv(
+        "FRESHSENSE_ALLOWED_HOSTS",
+        "127.0.0.1,localhost,testserver",
+    ).split(",")
+    if value.strip()
+)
+API_CORS_ORIGINS = tuple(
+    value.strip()
+    for value in os.getenv("FRESHSENSE_CORS_ORIGINS", "").split(",")
+    if value.strip()
+)
+API_JSON_LOGS = os.getenv("FRESHSENSE_JSON_LOGS", "false").lower() == "true"
+API_REQUIRE_SEMANTIC_RAG = (
+    os.getenv("FRESHSENSE_REQUIRE_SEMANTIC_RAG", "false").lower() == "true"
+)
 
 # Safety copy is centralized so every user-facing surface presents the same
 # limitations. This application is decision support, not a food-safety test.
