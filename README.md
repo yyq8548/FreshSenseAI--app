@@ -186,16 +186,27 @@ pip install -r requirements-build.txt
 powershell -ExecutionPolicy Bypass -File scripts/build_windows.ps1
 ```
 
-The distributable application is written to
-`dist/FreshSenseAI/FreshSenseAI.exe`. Ship the entire `FreshSenseAI` directory;
-end users do not install Python, TensorFlow, or a virtual environment.
+The release command runs the tests, validates every bundled model and knowledge
+asset, creates the self-contained application, and builds a versioned per-user
+installer. It writes these release artifacts to the workspace-level `outputs`
+directory:
+
+- `FreshSenseAI-Setup-<version>.exe`;
+- `FreshSenseAI-Setup-<version>.exe.sha256`; and
+- `FreshSenseAI-Release-<version>.json`.
+
+The installer includes Start Menu and optional Desktop shortcuts plus uninstall
+support. End users do not install Python, TensorFlow, a virtual environment, or
+Docker. See `docs/WINDOWS_RELEASE.md` for the complete build, clean-machine test,
+checksum, code-signing, and GitHub Release checklist.
 
 ## Versioned REST API
 
-FreshSense includes a FastAPI service for web, mobile, automation, and future
-cloud clients. It reuses the same validated agent as the desktop application and
-loads the vision model and semantic retriever exactly once during each API
-process's startup lifespan.
+FreshSense includes an optional FastAPI service for development integrations,
+automation, and future clients. The desktop application does not start or
+require this service. The API reuses the same validated agent and loads the
+vision model and semantic retriever exactly once during each process's startup
+lifespan.
 
 Install the production dependencies, prepare the local embedding model, and run
 one local API worker:
@@ -212,7 +223,9 @@ The versioned endpoints are:
 - `GET /api/v1/health`: reports vision-model and semantic-retrieval readiness;
 - `POST /api/v1/analyze`: accepts one JPEG, PNG, or WebP image as multipart field
   `file` and returns the prediction, confidence, image and scene assessments,
-  retrieved passages and scores, warnings, reasoning, and recommendation.
+  retrieved passages and scores, warnings, reasoning, and recommendation; and
+- `GET /api/v1/metrics`: returns process-local request and analysis metrics and
+  uses the same optional API-key protection as analysis.
 
 Example requests:
 
@@ -238,6 +251,13 @@ its filename. The multipart implementation may use short-lived operating-system
 temporary storage while parsing an upload; the API explicitly closes that upload
 before inference, allowing the temporary resource to be removed immediately.
 The decoded image is also closed after the response is serialized.
+
+Keep the development API bound to `127.0.0.1`. If another local client must
+access it, enable `FRESHSENSE_REQUIRE_API_KEY`, configure
+`FRESHSENSE_API_KEY_FILE`, and use exact values for
+`FRESHSENSE_ALLOWED_HOSTS` and `FRESHSENSE_CORS_ORIGINS`. The security,
+rate-limiting, request-ID, JSON-log, and metrics features run directly on
+Windows and do not depend on Docker.
 
 ### Private local scan history
 
@@ -416,6 +436,7 @@ Every push automatically runs the test suite through GitHub Actions.
 -   ✅ Local scan memory
 -   ⏳ Multi-turn conversation memory
 -   ✅ REST API
+-   ✅ Versioned Windows installer pipeline
 -   ⏳ Cloud Deployment
 
 ------------------------------------------------------------------------

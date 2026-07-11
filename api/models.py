@@ -21,6 +21,21 @@ class HealthResponse(ApiModel):
     semantic_model: str | None = None
     supported_fruits: list[str]
     image_retention: Literal[False] = False
+    authentication_required: bool
+    rate_limit_per_minute: int = Field(gt=0)
+
+
+class MetricsResponse(ApiModel):
+    service: Literal["FreshSense AI"] = "FreshSense AI"
+    api_version: Literal["v1"] = "v1"
+    uptime_seconds: float = Field(ge=0.0)
+    request_count: int = Field(ge=0)
+    active_requests: int = Field(ge=0)
+    response_status_counts: dict[str, int]
+    analysis_count: int = Field(ge=0)
+    analysis_failures: int = Field(ge=0)
+    average_analysis_seconds: float | None = Field(default=None, ge=0.0)
+    last_analysis_seconds: float | None = Field(default=None, ge=0.0)
 
 
 class PredictionResponse(ApiModel):

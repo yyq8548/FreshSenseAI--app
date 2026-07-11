@@ -1,0 +1,10 @@
+# Minimal pinned runtime for the optional REST API.
+tensorflow==2.19.0
+numpy==1.26.4
+Pillow==11.2.1
+openai==1.93.0
+fastembed==0.8.0
+fastapi==0.139.0
+pydantic==2.13.4
+python-multipart==0.0.32
+uvicorn==0.51.0

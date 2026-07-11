@@ -9,6 +9,7 @@ a = Analysis(
     pathex=[],
     binaries=tensorflow_binaries,
     datas=[
+        ("VERSION", "."),
         ("models/densenet201.h5", "models"),
         ("models/embedding_cache", "models/embedding_cache"),
         ("data/fruit_catalog.json", "data"),
@@ -45,6 +46,7 @@ exe = EXE(
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
+    version="work/windows_version_info.txt",
     codesign_identity=None,
     entitlements_file=None,
 )
