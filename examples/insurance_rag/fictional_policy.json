@@ -1,0 +1,38 @@
+[
+  {
+    "id": "notice_of_loss",
+    "citation": "Fictional Home Policy, Section 4.1",
+    "topic": "claim notice",
+    "text": "The policyholder should notify the insurer of a potential covered loss as soon as reasonably practical and no later than 30 calendar days after discovering the loss. A claims specialist must review late notices before any coverage conclusion is made."
+  },
+  {
+    "id": "proof_of_loss",
+    "citation": "Fictional Home Policy, Section 4.3",
+    "topic": "proof of loss",
+    "text": "When requested, the policyholder should provide a signed proof-of-loss statement and available supporting records within 60 calendar days. The insurer may extend the deadline in writing."
+  },
+  {
+    "id": "property_deductible",
+    "citation": "Fictional Home Policy, Declarations D-2",
+    "topic": "deductible",
+    "text": "The fictional property deductible is 500 dollars for each covered occurrence unless a different deductible appears in the declarations. A deductible is not itself a coverage determination."
+  },
+  {
+    "id": "flood_exclusion",
+    "citation": "Fictional Home Policy, Exclusion 7.2",
+    "topic": "flood exclusion",
+    "text": "The fictional policy excludes direct physical loss caused by surface-water flooding. A human coverage specialist must review the facts, endorsements, and applicable law before deciding whether this exclusion applies."
+  },
+  {
+    "id": "temporary_repairs",
+    "citation": "Fictional Home Policy, Section 4.5",
+    "topic": "temporary repairs",
+    "text": "The policyholder may take reasonable temporary steps to prevent additional damage when safe to do so and should retain receipts and photographs. Permanent repairs should not prevent the insurer from inspecting the damage."
+  },
+  {
+    "id": "human_review",
+    "citation": "Fictional Home Policy, Prototype Governance Note",
+    "topic": "human review",
+    "text": "This prototype may retrieve policy language but cannot approve, deny, price, or adjudicate a claim. A qualified human reviewer remains responsible for every coverage and payment decision."
+  }
+]

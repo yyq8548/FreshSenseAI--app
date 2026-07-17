@@ -14,6 +14,19 @@ class RecommendationTool:
         self.catalog = catalog or load_fruit_catalog(catalog_path)
 
     def run(self, state: AgentState) -> AgentState:
+        if state.decision == "unsupported_input":
+            supported_names = [
+                fruit.display_name.lower() for fruit in self.catalog.fruits.values()
+            ]
+            supported = ", ".join(supported_names[:-1]) + f", or {supported_names[-1]}"
+            state.recommendation = (
+                "FreshSense could not confirm a supported fruit in this image. "
+                f"Use one clear {supported} photo at a time. No freshness guidance "
+                "was generated for this image."
+            )
+            state.add_trace("RecommendationTool generated unsupported-input guidance.")
+            return state
+
         if state.decision == "uncertain_input":
             supported_names = [
                 fruit.display_name.lower() for fruit in self.catalog.fruits.values()

@@ -11,7 +11,15 @@ APP_LAYOUT = "centered"
 
 PROJECT_ROOT = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
 MODEL_PATH = os.getenv("FRESHSENSE_MODEL_PATH", str(PROJECT_ROOT / "models" / "densenet201.h5"))
+OPEN_SET_GATE_PATH = os.getenv(
+    "FRESHSENSE_OPEN_SET_GATE_PATH",
+    str(PROJECT_ROOT / "models" / "open_set_gate.npz"),
+)
+REQUIRE_OPEN_SET_GATE = (
+    os.getenv("FRESHSENSE_REQUIRE_OPEN_SET_GATE", "true").lower() == "true"
+)
 IMAGE_SIZE = (224, 224)
+ENABLE_GRADCAM = os.getenv("FRESHSENSE_ENABLE_GRADCAM", "true").lower() == "true"
 
 MIN_CONFIDENCE = 0.70
 MIN_PREDICTION_MARGIN = 0.15

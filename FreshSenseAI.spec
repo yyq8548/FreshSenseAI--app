@@ -11,7 +11,12 @@ a = Analysis(
     datas=[
         ("VERSION", "."),
         ("models/densenet201.h5", "models"),
+        ("models/open_set_gate.npz", "models"),
         ("models/embedding_cache", "models/embedding_cache"),
+        ("artifacts/model_manifest.json", "artifacts"),
+        ("evaluation/manifests/legacy_grouped_v1.json", "evaluation/manifests"),
+        ("evaluation/reports/current_model/evaluation_report.json", "evaluation/reports/current_model"),
+        ("evaluation/reports/gate_calibration_final.json", "evaluation/reports"),
         ("data/fruit_catalog.json", "data"),
         ("data/food_knowledge_base.json", "data"),
     ],

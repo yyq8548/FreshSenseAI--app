@@ -7,6 +7,8 @@ build/
 dist/
 work/
 outputs/
+mlruns/
+runtime-bundle*.zip
 *.log
 models/*.h5
 models/*.keras
@@ -17,3 +19,6 @@ dataset/
 *.pt
 *.pth
 secrets/*.txt
+pilot/data/
+ci/golden/
+FRUIT_CLASSIFICATION_FRESH_VS_ROTTEN_USING-CONVOLUTIONAL-NEURAL_NETWORK-main/

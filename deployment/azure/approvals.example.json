@@ -1,0 +1,6 @@
+{
+  "business_owner_approved": false,
+  "technology_owner_approved": false,
+  "security_review_approved": false,
+  "notes": "Copy to an access-controlled location only after accountable reviewers approve."
+}

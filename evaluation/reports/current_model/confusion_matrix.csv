@@ -1,0 +1,7 @@
+true\predicted,freshapples,freshbanana,freshoranges,rottenapples,rottenbanana,rottenoranges,__withheld__
+freshapples,302,0,0,0,0,0,13
+freshbanana,0,275,0,0,0,0,13
+freshoranges,0,0,278,0,0,0,1
+rottenapples,0,0,0,427,0,0,14
+rottenbanana,0,0,0,0,388,0,26
+rottenoranges,0,0,0,0,0,301,5

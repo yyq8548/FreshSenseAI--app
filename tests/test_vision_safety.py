@@ -38,7 +38,7 @@ def test_model_load_failure_never_creates_demo_prediction(monkeypatch):
     monkeypatch.setitem(sys.modules, "tensorflow.keras.models", models_module)
 
     with pytest.raises(RuntimeError, match="could not load"):
-        DenseNetVisionTool("missing.h5")
+        DenseNetVisionTool("missing.h5", open_set_gate_path=None, require_open_set_gate=False)
 
 
 def test_model_output_must_match_configured_classes(monkeypatch):
@@ -47,7 +47,9 @@ def test_model_output_must_match_configured_classes(monkeypatch):
             return np.array([[0.8, 0.2]])
 
     _install_fake_tensorflow(monkeypatch, InvalidModel())
-    tool = DenseNetVisionTool("model.h5")
+    tool = DenseNetVisionTool(
+        "model.h5", open_set_gate_path=None, require_open_set_gate=False
+    )
     state = AgentState(image=Image.new("RGB", (224, 224)))
 
     with pytest.raises(RuntimeError, match="does not match"):
@@ -60,7 +62,9 @@ def test_valid_model_prediction_is_used(monkeypatch):
             return np.array([[0.01, 0.92, 0.01, 0.02, 0.02, 0.02]])
 
     _install_fake_tensorflow(monkeypatch, ValidModel())
-    tool = DenseNetVisionTool("model.h5")
+    tool = DenseNetVisionTool(
+        "model.h5", open_set_gate_path=None, require_open_set_gate=False
+    )
     state = tool.run(AgentState(image=Image.new("RGB", (224, 224))))
 
     assert state.prediction is not None
@@ -93,7 +97,12 @@ def test_model_output_order_comes_from_injected_catalog(monkeypatch):
     )
     _install_fake_tensorflow(monkeypatch, TwoClassModel())
 
-    tool = DenseNetVisionTool("model.h5", catalog=catalog)
+    tool = DenseNetVisionTool(
+        "model.h5",
+        catalog=catalog,
+        open_set_gate_path=None,
+        require_open_set_gate=False,
+    )
     state = tool.run(AgentState(image=Image.new("RGB", (224, 224))))
 
     assert state.prediction is not None

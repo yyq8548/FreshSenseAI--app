@@ -11,7 +11,7 @@ import os
 import time
 import warnings
 
-from fastapi import APIRouter, Depends, FastAPI, File, Request, Response, UploadFile
+from fastapi import APIRouter, Depends, FastAPI, File, Query, Request, Response, UploadFile
 from fastapi.responses import JSONResponse
 from PIL import Image, ImageOps, UnidentifiedImageError
 from starlette.concurrency import run_in_threadpool
@@ -49,6 +49,8 @@ from utils.config import (
     FRUIT_CATALOG_PATH,
     KNOWLEDGE_BASE_PATH,
     MODEL_PATH,
+    OPEN_SET_GATE_PATH,
+    REQUIRE_OPEN_SET_GATE,
 )
 from utils.startup import StartupValidationError, validate_startup
 
@@ -71,11 +73,15 @@ def _production_agent_factory() -> FruitScannerAgent:
         model_path=MODEL_PATH,
         knowledge_base_path=KNOWLEDGE_BASE_PATH,
         fruit_catalog_path=FRUIT_CATALOG_PATH,
+        open_set_gate_path=OPEN_SET_GATE_PATH,
+        require_open_set_gate=REQUIRE_OPEN_SET_GATE,
     )
     return FruitScannerAgent(
         model_path=MODEL_PATH,
         catalog_path=FRUIT_CATALOG_PATH,
         knowledge_base_path=KNOWLEDGE_BASE_PATH,
+        open_set_gate_path=OPEN_SET_GATE_PATH,
+        require_open_set_gate=REQUIRE_OPEN_SET_GATE,
     )
 
 
@@ -300,6 +306,13 @@ def create_app(
     async def analyze(
         request: Request,
         response: Response,
+        include_explanation: bool = Query(
+            False,
+            description=(
+                "Include an in-memory base64 PNG Grad-CAM overlay when an accepted "
+                "prediction has an explanation. The image is still not retained."
+            ),
+        ),
         file: UploadFile = File(
             ...,
             description="A JPEG, PNG, or WebP photo containing one supported fruit type.",
@@ -325,7 +338,11 @@ def create_app(
             try:
                 async with request.app.state.inference_lock:
                     state = await run_in_threadpool(agent.run, image)
-                result = serialize_agent_state(state, agent.catalog)
+                result = serialize_agent_state(
+                    state,
+                    agent.catalog,
+                    include_explanation_overlay=include_explanation,
+                )
                 success = True
                 return result
             except ApiProblem:

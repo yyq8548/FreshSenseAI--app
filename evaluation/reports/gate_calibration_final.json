@@ -1,0 +1,87 @@
+{
+  "artifact": "open_set_gate.npz",
+  "artifact_sha256": "62cd980b713cf868fc9a1d4b8a26b36938887fd7b9340934cab6faa8c944c144",
+  "created_at_utc": "2026-07-17T04:49:42.728404+00:00",
+  "feature_extraction_seconds": {
+    "synthetic_ood": 3.257,
+    "train": 181.667,
+    "validation": 39.587
+  },
+  "feature_layer": "avg_pool",
+  "feature_size": 1920,
+  "manifest_sha256": "4c1529096671c1ae184a39858e1fe4c2b9cc8a855f1b6f1eb41f3a984ae53424",
+  "minimum_final_supported_coverage": 0.9,
+  "minimum_supported_coverage": 0.95,
+  "model_sha256": "81a4ec243781885a6a835bbd94392cd391ed6b7d8274e732911330cff33afbf4",
+  "prototype_calibration": {
+    "freshapples": {
+      "coverage_cap_threshold": 0.8908164262771606,
+      "final_validation_coverage": 0.9365079365079365,
+      "nearest_centroid_agreement": 0.9746031746031746,
+      "own_centroid_coverage": 0.9492063492063492,
+      "supported_only_threshold": 0.8773676156997681,
+      "synthetic_ood_threshold": 0.8828367638587952,
+      "threshold": 0.8828367638587952,
+      "validation_images": 315
+    },
+    "freshbanana": {
+      "coverage_cap_threshold": 0.8480665922164917,
+      "final_validation_coverage": 0.898989898989899,
+      "nearest_centroid_agreement": 1.0,
+      "own_centroid_coverage": 0.9494949494949495,
+      "supported_only_threshold": 0.8193671941757202,
+      "synthetic_ood_threshold": 0.8578870356082915,
+      "threshold": 0.8480665922164917,
+      "validation_images": 297
+    },
+    "freshoranges": {
+      "coverage_cap_threshold": 0.8590628266334533,
+      "final_validation_coverage": 0.921146953405018,
+      "nearest_centroid_agreement": 0.9713261648745519,
+      "own_centroid_coverage": 0.9498207885304659,
+      "supported_only_threshold": 0.7539021730422975,
+      "synthetic_ood_threshold": 0.8328256273269653,
+      "threshold": 0.8328256273269653,
+      "validation_images": 279
+    },
+    "rottenapples": {
+      "coverage_cap_threshold": 0.8262016773223877,
+      "final_validation_coverage": 0.9501133786848073,
+      "nearest_centroid_agreement": 0.9501133786848073,
+      "own_centroid_coverage": 0.9501133786848073,
+      "supported_only_threshold": 0.8024104237556458,
+      "synthetic_ood_threshold": 0.7468060910701751,
+      "threshold": 0.8024104237556458,
+      "validation_images": 441
+    },
+    "rottenbanana": {
+      "coverage_cap_threshold": 0.8612059891223908,
+      "final_validation_coverage": 0.9492753623188406,
+      "nearest_centroid_agreement": 1.0,
+      "own_centroid_coverage": 0.9492753623188406,
+      "supported_only_threshold": 0.8281944632530213,
+      "synthetic_ood_threshold": 0.7975499951839446,
+      "threshold": 0.8281944632530213,
+      "validation_images": 414
+    },
+    "rottenoranges": {
+      "coverage_cap_threshold": 0.749460780620575,
+      "final_validation_coverage": 0.9494949494949495,
+      "nearest_centroid_agreement": 0.8922558922558923,
+      "own_centroid_coverage": 0.9494949494949495,
+      "supported_only_threshold": 0.7248289942741394,
+      "synthetic_ood_threshold": 0.7225138556957245,
+      "threshold": 0.7248289942741394,
+      "validation_images": 297
+    }
+  },
+  "schema_version": 2,
+  "synthetic_calibration_seed": 20260716,
+  "synthetic_ood_false_acceptance_rate": 0.020833333333333332,
+  "synthetic_ood_images": 192,
+  "synthetic_rejection_quantile": 0.99,
+  "validation_gate_coverage": 0.933920704845815,
+  "validation_images": 2043,
+  "validation_nearest_centroid_agreement": 0.9657366617719041,
+  "validity_warning": "The existing DenseNet model was trained with the legacy leaked split. This gate is a safety baseline and must be recalibrated after group-wise model retraining and independent real-world data collection."
+}

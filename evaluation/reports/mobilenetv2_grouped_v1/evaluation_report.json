@@ -1,0 +1,142 @@
+﻿{
+    "architecture":  "MobileNetV2",
+    "class_order":  [
+                        "freshapples",
+                        "freshbanana",
+                        "freshoranges",
+                        "rottenapples",
+                        "rottenbanana",
+                        "rottenoranges"
+                    ],
+    "configuration":  {
+                          "batch_size":  32,
+                          "dataset_root":  "external-local-dataset",
+                          "deduplicate_sha":  true,
+                          "dropout":  0.25,
+                          "epochs":  5,
+                          "experiment_name":  "FreshSense-MobileNetV2",
+                          "learning_rate":  0.001,
+                          "manifest_path":  "evaluation/manifests/legacy_grouped_v1.json",
+                          "max_per_class":  null,
+                          "output_dir":  "generated-local-artifact",
+                          "patience":  3,
+                          "run_name":  "grouped-imagenet-v1",
+                          "seed":  20260717,
+                          "tracking_database":  "local-mlflow-sqlite",
+                          "weights":  "imagenet"
+                      },
+    "generated_at_utc":  "2026-07-17T06:22:55.394562+00:00",
+    "manifest_sha256":  "4c1529096671c1ae184a39858e1fe4c2b9cc8a855f1b6f1eb41f3a984ae53424",
+    "metrics":  {
+                    "accuracy":  0.9897209985315712,
+                    "confusion_matrix":  [
+                                             [
+                                                 314,
+                                                 0,
+                                                 0,
+                                                 1,
+                                                 0,
+                                                 0
+                                             ],
+                                             [
+                                                 0,
+                                                 288,
+                                                 0,
+                                                 0,
+                                                 0,
+                                                 0
+                                             ],
+                                             [
+                                                 0,
+                                                 0,
+                                                 277,
+                                                 0,
+                                                 0,
+                                                 2
+                                             ],
+                                             [
+                                                 0,
+                                                 0,
+                                                 0,
+                                                 433,
+                                                 0,
+                                                 8
+                                             ],
+                                             [
+                                                 0,
+                                                 0,
+                                                 0,
+                                                 0,
+                                                 414,
+                                                 0
+                                             ],
+                                             [
+                                                 0,
+                                                 0,
+                                                 8,
+                                                 2,
+                                                 0,
+                                                 296
+                                             ]
+                                         ],
+                    "images":  2043,
+                    "macro_f1":  0.989242863409617,
+                    "mean_batch_inference_seconds_per_image":  0.003444589084675066,
+                    "mean_confidence":  0.9768953276830039,
+                    "per_class":  {
+                                      "freshapples":  {
+                                                          "f1":  0.9984101748807631,
+                                                          "precision":  1.0,
+                                                          "recall":  0.9968253968253968,
+                                                          "support":  315
+                                                      },
+                                      "freshbanana":  {
+                                                          "f1":  1.0,
+                                                          "precision":  1.0,
+                                                          "recall":  1.0,
+                                                          "support":  288
+                                                      },
+                                      "freshoranges":  {
+                                                           "f1":  0.9822695035460993,
+                                                           "precision":  0.9719298245614035,
+                                                           "recall":  0.992831541218638,
+                                                           "support":  279
+                                                       },
+                                      "rottenapples":  {
+                                                           "f1":  0.9874572405929306,
+                                                           "precision":  0.9931192660550459,
+                                                           "recall":  0.981859410430839,
+                                                           "support":  441
+                                                       },
+                                      "rottenbanana":  {
+                                                           "f1":  1.0,
+                                                           "precision":  1.0,
+                                                           "recall":  1.0,
+                                                           "support":  414
+                                                       },
+                                      "rottenoranges":  {
+                                                            "f1":  0.9673202614379085,
+                                                            "precision":  0.9673202614379085,
+                                                            "recall":  0.9673202614379085,
+                                                            "support":  306
+                                                        }
+                                  },
+                    "rotten_images":  1161,
+                    "rotten_to_fresh_errors":  8,
+                    "rotten_to_fresh_rate":  0.0068906115417743325
+                },
+    "mlflow_run_id":  "561724080029469c88e3ac73acb8a56e",
+    "model_bytes":  9718812,
+    "schema_version":  1,
+    "split_counts":  {
+                         "test":  2043,
+                         "train":  9514,
+                         "validation":  2043
+                     },
+    "validity":  {
+                     "independent_real_world_benchmark":  false,
+                     "source_grouped_split":  true,
+                     "warning":  "This experiment uses grouped legacy web images. It is suitable for architecture comparison, not a real-world field-accuracy claim."
+                 },
+    "model_sha256":  "08f053a7dcdf430f86b62fcb0371fdce08e0a744e777b224682426ed5a906fd0"
+}

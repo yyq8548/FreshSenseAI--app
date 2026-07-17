@@ -1,4 +1,5 @@
 from io import BytesIO
+from base64 import b64decode
 from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
@@ -105,6 +106,21 @@ class _FailingAgent(_FakeAgent):
         raise RuntimeError("sensitive internal failure")
 
 
+class _ExplainableAgent(_FakeAgent):
+    def run(self, image: Image.Image) -> AgentState:
+        state = super().run(image)
+        state.metadata["explainability"] = {
+            "method": "grad_cam",
+            "target_class": "freshbanana",
+            "layer": "conv5_block32_concat",
+            "heatmap": [[0.0, 0.5], [0.75, 1.0]],
+            "peak_activation": 1.0,
+            "active_fraction": 0.75,
+            "disclaimer": "Influence only; not proof of spoilage.",
+        }
+        return state
+
+
 def _image_bytes(
     *,
     size: tuple[int, int] = (16, 16),
@@ -192,6 +208,23 @@ def test_analyze_returns_prediction_retrieval_warnings_and_privacy_contract():
     assert response.headers["x-request-id"]
     with pytest.raises(ValueError, match="closed image"):
         fake_agent.last_image.getpixel((0, 0))
+
+
+def test_analyze_returns_gradcam_overlay_only_when_requested():
+    app = create_app(agent_factory=lambda: _ExplainableAgent())
+    with TestClient(app) as client:
+        default_response = client.post("/api/v1/analyze", files=_upload(_image_bytes()))
+        explained_response = client.post(
+            "/api/v1/analyze?include_explanation=true",
+            files=_upload(_image_bytes()),
+        )
+
+    assert default_response.status_code == 200
+    assert default_response.json()["explainability"]["overlay_png_base64"] is None
+    explanation = explained_response.json()["explainability"]
+    assert explanation["method"] == "grad_cam"
+    assert explanation["target_class"] == "freshbanana"
+    assert b64decode(explanation["overlay_png_base64"]).startswith(b"\x89PNG")
 
 
 def test_analyze_withholds_tentative_uncertain_prediction():

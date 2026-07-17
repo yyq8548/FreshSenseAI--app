@@ -26,6 +26,20 @@ def result_summary(
     state: AgentState,
     catalog: FruitCatalog | None = None,
 ) -> dict[str, str]:
+    if state.decision == "unsupported_input":
+        warnings = _warning_text(state)
+        return {
+            "title": "Unsupported photo",
+            "confidence": "No fruit result",
+            "risk": "Unknown",
+            "recommendation": state.recommendation,
+            "details": (
+                "The supported-input gate did not confirm one supported fruit type. "
+                "The freshness classifier was withheld."
+                + (f"\n\nPhoto guidance:\n{warnings}" if warnings else "")
+            ),
+        }
+
     if state.decision == "uncertain_input":
         warnings = _warning_text(state)
         details = (
