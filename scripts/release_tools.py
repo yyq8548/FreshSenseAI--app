@@ -12,6 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from utils.startup import StartupValidationError, validate_startup
+from utils.artifact_manifest import ArtifactManifestError, verify_artifact_manifest
 
 
 VERSION_PATTERN = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
@@ -29,7 +30,7 @@ def read_release_version(path: Path) -> str:
         raise ReleaseValidationError(f"Release version file is unavailable: {path}") from exc
     match = VERSION_PATTERN.fullmatch(version)
     if match is None:
-        raise ReleaseValidationError("VERSION must contain three numeric components, such as 0.2.0.")
+        raise ReleaseValidationError("VERSION must contain three numeric components, such as 0.3.0.")
     if any(int(component) > 65535 for component in match.groups()):
         raise ReleaseValidationError("Each VERSION component must be 65535 or lower.")
     return version
@@ -49,6 +50,9 @@ def validate_release_assets(
     embedding_cache: Path,
     catalog_path: Path,
     knowledge_base_path: Path,
+    open_set_gate_path: Path | None = None,
+    artifact_manifest_path: Path | None = None,
+    project_root: Path | None = None,
 ) -> str:
     version = read_release_version(version_path)
     try:
@@ -56,6 +60,10 @@ def validate_release_assets(
             model_path=str(model_path),
             knowledge_base_path=str(knowledge_base_path),
             fruit_catalog_path=str(catalog_path),
+            open_set_gate_path=(
+                str(open_set_gate_path) if open_set_gate_path is not None else None
+            ),
+            require_open_set_gate=open_set_gate_path is not None,
         )
     except StartupValidationError as exc:
         raise ReleaseValidationError(str(exc)) from exc
@@ -76,6 +84,14 @@ def validate_release_assets(
         raise ReleaseValidationError("The embedding cache contains no non-empty ONNX model.")
     if not tokenizers:
         raise ReleaseValidationError("The embedding cache contains no non-empty tokenizer.json.")
+    if artifact_manifest_path is not None:
+        try:
+            verify_artifact_manifest(
+                artifact_manifest_path,
+                project_root=project_root or PROJECT_ROOT,
+            )
+        except ArtifactManifestError as exc:
+            raise ReleaseValidationError(str(exc)) from exc
     return version
 
 
@@ -122,6 +138,9 @@ def _default_paths() -> dict[str, Path]:
         "embedding_cache": PROJECT_ROOT / "models" / "embedding_cache",
         "catalog_path": PROJECT_ROOT / "data" / "fruit_catalog.json",
         "knowledge_base_path": PROJECT_ROOT / "data" / "food_knowledge_base.json",
+        "open_set_gate_path": PROJECT_ROOT / "models" / "open_set_gate.npz",
+        "artifact_manifest_path": PROJECT_ROOT / "artifacts" / "model_manifest.json",
+        "project_root": PROJECT_ROOT,
     }
 
 

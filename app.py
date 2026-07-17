@@ -10,6 +10,8 @@ from utils.config import (
     FRUIT_CATALOG_PATH,
     KNOWLEDGE_BASE_PATH,
     MODEL_PATH,
+    OPEN_SET_GATE_PATH,
+    REQUIRE_OPEN_SET_GATE,
     SAFETY_NOTICE,
 )
 from utils.startup import StartupValidationError, validate_startup
@@ -26,11 +28,19 @@ st.write(
 )
 
 try:
-    validate_startup(MODEL_PATH, KNOWLEDGE_BASE_PATH, FRUIT_CATALOG_PATH)
+    validate_startup(
+        MODEL_PATH,
+        KNOWLEDGE_BASE_PATH,
+        FRUIT_CATALOG_PATH,
+        OPEN_SET_GATE_PATH,
+        REQUIRE_OPEN_SET_GATE,
+    )
     agent = FruitScannerAgent(
         model_path=MODEL_PATH,
         catalog_path=FRUIT_CATALOG_PATH,
         knowledge_base_path=KNOWLEDGE_BASE_PATH,
+        open_set_gate_path=OPEN_SET_GATE_PATH,
+        require_open_set_gate=REQUIRE_OPEN_SET_GATE,
     )
     if agent.retriever_tool.semantic_ready:
         st.caption("Knowledge retrieval: local semantic embeddings")

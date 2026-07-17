@@ -97,6 +97,16 @@ class PrivacyResponse(ApiModel):
     filename_retained: Literal[False] = False
 
 
+class ExplainabilityResponse(ApiModel):
+    method: Literal["grad_cam"] = "grad_cam"
+    target_class: str
+    layer: str
+    peak_activation: float = Field(ge=0.0, le=1.0)
+    active_fraction: float = Field(ge=0.0, le=1.0)
+    overlay_png_base64: str | None = None
+    disclaimer: str
+
+
 class AnalyzeResponse(ApiModel):
     api_version: Literal["v1"] = "v1"
     decision: str
@@ -108,6 +118,7 @@ class AnalyzeResponse(ApiModel):
     retrieval: RetrievalResponse | None
     warnings: list[WarningResponse]
     reasoning: ReasoningResponse | None
+    explainability: ExplainabilityResponse | None = None
     recommendation: str
     safety_notice: str
     privacy: PrivacyResponse = Field(default_factory=PrivacyResponse)

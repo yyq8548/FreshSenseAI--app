@@ -1,0 +1,84 @@
+{
+  "application_version": "0.4.0",
+  "artifacts": {
+    "evaluation_manifest": {
+      "bytes": 9233997,
+      "path": "evaluation/manifests/legacy_grouped_v1.json",
+      "sha256": "4c1529096671c1ae184a39858e1fe4c2b9cc8a855f1b6f1eb41f3a984ae53424"
+    },
+    "evaluation_report": {
+      "bytes": 2282347,
+      "path": "evaluation/reports/current_model/evaluation_report.json",
+      "sha256": "cc48fea9b37cd67597fa5ddf9c81cc3011406005ae99af7a80c305a1a85be4ae"
+    },
+    "fruit_catalog": {
+      "bytes": 1193,
+      "path": "data/fruit_catalog.json",
+      "sha256": "31230ffaab066ec42f2b7e3792a940c789c863a04ca4b0d624f80a31824cc696"
+    },
+    "gate_calibration_report": {
+      "bytes": 3783,
+      "path": "evaluation/reports/gate_calibration_final.json",
+      "sha256": "a82b997291ef7ce6543cb2928f9e37dc8149578801f70dceff52beea050db3f6"
+    },
+    "knowledge_base": {
+      "bytes": 2285,
+      "path": "data/food_knowledge_base.json",
+      "sha256": "7ec428df9afae0c2aa81aa17097752dc30e6f73cfba4e0ef33d640634299f73d"
+    },
+    "open_set_gate": {
+      "bytes": 45726,
+      "path": "models/open_set_gate.npz",
+      "sha256": "62cd980b713cf868fc9a1d4b8a26b36938887fd7b9340934cab6faa8c944c144"
+    },
+    "vision_model": {
+      "bytes": 220970424,
+      "path": "models/densenet201.h5",
+      "sha256": "81a4ec243781885a6a835bbd94392cd391ed6b7d8274e732911330cff33afbf4"
+    }
+  },
+  "associations": {
+    "evaluation_manifest_sha256": "4c1529096671c1ae184a39858e1fe4c2b9cc8a855f1b6f1eb41f3a984ae53424",
+    "evaluation_report_sha256": "cc48fea9b37cd67597fa5ddf9c81cc3011406005ae99af7a80c305a1a85be4ae",
+    "gate_schema_version": 2,
+    "gate_sha256": "62cd980b713cf868fc9a1d4b8a26b36938887fd7b9340934cab6faa8c944c144",
+    "model_sha256": "81a4ec243781885a6a835bbd94392cd391ed6b7d8274e732911330cff33afbf4"
+  },
+  "class_order": [
+    "freshapples",
+    "freshbanana",
+    "freshoranges",
+    "rottenapples",
+    "rottenbanana",
+    "rottenoranges"
+  ],
+  "evaluation_summary": {
+    "coverage": 0.9647577092511013,
+    "mean_latency_seconds": 0.016915822192420767,
+    "median_latency_seconds": 0.014882512500207667,
+    "overall_accuracy_including_withheld": 0.9647577092511013,
+    "p95_latency_seconds": 0.050924191525663735,
+    "rotten_images": 1161,
+    "rotten_to_fresh_errors": 0,
+    "rotten_to_fresh_rate": 0.0,
+    "selective_accuracy_when_accepted": 1.0,
+    "supported_accepted": 1971,
+    "supported_images": 2043,
+    "supported_withheld": 72,
+    "unsupported_accepted": 11,
+    "unsupported_false_acceptance_rate": 0.057291666666666664,
+    "unsupported_images": 192
+  },
+  "evaluation_validity": {
+    "independent_real_world_benchmark": false,
+    "legacy_train_test_source_overlap": 1310,
+    "warning": "The current model was trained before the leakage-free grouped manifest existed. These results validate software behavior, not independent real-world accuracy."
+  },
+  "fruit_order": [
+    "apple",
+    "banana",
+    "orange"
+  ],
+  "generated_at_utc": "2026-07-17T06:19:24.101551+00:00",
+  "schema_version": 1
+}

@@ -13,7 +13,7 @@ produce a freshness result with grounded storage and safety guidance.
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-2.19-orange)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.139-009688)
 ![Tests](https://img.shields.io/badge/tests-pytest%20%2B%20GitHub%20Actions-brightgreen)
-![Release](https://img.shields.io/badge/release-0.2.0-blueviolet)
+![Release](https://img.shields.io/badge/release-0.4.0-blueviolet)
 
 ## What FreshSense does
 
@@ -21,10 +21,12 @@ FreshSense accepts a photo containing one supported fruit type and returns:
 
 - a fresh or rotten classification for apple, banana, or orange;
 - model confidence when the result passes the safety gates;
+- an optional Grad-CAM influence overlay for accepted predictions;
 - image-quality and scene warnings;
 - retrieved storage, shelf-life, spoilage, and food-safety knowledge;
 - an explanation, risk level, storage advice, and recommendation; and
-- an explicit unsupported or uncertain result when confidence is insufficient.
+- an explicit unsupported or uncertain result when the supported-fruit gate,
+  fruit-identity agreement, confidence, or class margin is insufficient.
 
 The trained Keras model is the source of the visual prediction. FreshSense does
 not generate a placeholder or random prediction if that model is missing or
@@ -51,23 +53,27 @@ desktop UI, Streamlit, or the REST API.
 
 ```mermaid
 flowchart TD
-    A["Start application"] --> B["Validate model, fruit catalog, and knowledge base"]
+    A["Start application"] --> B["Validate model, gate, catalog, knowledge, and hashes"]
     B --> C["Load vision model and local semantic retriever"]
     C --> D["Select or upload one image"]
     D --> E["Decode, normalize, and inspect image quality"]
     E --> F["Analyze scene and foreground"]
-    F --> G["Run DenseNet201 classification"]
-    G --> H{"Confidence and margin accepted?"}
-    H -- "No" --> I["Withhold tentative class"]
-    I --> J["Retrieve general safety guidance"]
-    H -- "Yes" --> K["Map model class through fruit catalog"]
-    K --> L["Retrieve fruit-scoped knowledge"]
-    J --> M{"GPT-5 configured and available?"}
+    F --> G{"Clearly one supported fruit?"}
+    G -- "No" --> I["Withhold freshness prediction"]
+    I --> U["Return general safety recommendation"]
+    G -- "Yes" --> H["Run DenseNet201 freshness classification"]
+    H --> R{"Fruit identity, confidence, and margin accepted?"}
+    R -- "No" --> T["Return uncertainty or retake guidance"]
+    R -- "Yes" --> K["Map model class through fruit catalog"]
+    K --> X["Generate Grad-CAM influence map"]
+    X --> L["Retrieve fruit-scoped knowledge"]
     L --> M
     M -- "Yes" --> N["Generate grounded GPT-5 reasoning"]
     M -- "No" --> O["Use reviewed rule-based reasoning"]
     N --> P["Return result, warnings, and recommendation"]
     O --> P
+    T --> P
+    U --> P
     P --> Q["Optionally save non-photo scan metadata locally"]
 ```
 
@@ -78,7 +84,10 @@ flowchart TD
 - **Configuration-driven labels:** `data/fruit_catalog.json` defines the exact
   model output order and fruit metadata.
 - **Fail-closed startup:** the app refuses to start with an invalid model,
-  catalog, or knowledge base.
+  calibrated gate, catalog, knowledge base, or model/gate hash mismatch.
+- **Dedicated supported-input gate:** DenseNet feature prototypes first decide
+  whether an image clearly resembles one supported fruit identity; freshness
+  classification is exposed only after that decision passes.
 - **Uncertainty gating:** low confidence or a small top-two class margin produces
   an uncertain result without fruit-specific advice.
 - **Grounded reasoning:** retrieved knowledge is supplied to GPT-5 when enabled;
@@ -86,6 +95,8 @@ flowchart TD
 - **Local-first retrieval:** embeddings and ranking run on-device. A keyword
   retriever is used with a visible warning if semantic embeddings are
   unavailable.
+- **Bounded explainability:** Grad-CAM is generated only for accepted model
+  classes and is presented as influence, never proof of spoilage.
 - **No required cloud backend:** only optional GPT-5 reasoning sends a text
   payload to the OpenAI API. The image itself is not sent to OpenAI by this
   application.
@@ -98,6 +109,8 @@ flowchart TD
 | Image-quality checks | Implemented | Detects dark, overexposed, and blurry images |
 | Scene analysis | Implemented | Flags empty-looking scenes, small foregrounds, and photos needing a closer crop |
 | Confidence safety gates | Implemented | Requires minimum confidence and class-margin thresholds |
+| Supported-input/open-set gate | Implemented baseline | Uses calibrated feature prototypes, model hashes, and fruit agreement before freshness output |
+| Grad-CAM explainability | Implemented | Shows an in-memory influence overlay for accepted desktop results; API overlay bytes are opt-in |
 | Unsupported/uncertain result | Implemented | Withholds the tentative class and fruit-specific guidance |
 | Configuration-driven fruit catalog | Implemented | Validates class order, fruit metadata, and knowledge coverage at startup |
 | Local RAG | Implemented | Retrieves curated food knowledge without an external service |
@@ -112,13 +125,21 @@ flowchart TD
 | API hardening | Implemented | Optional API key, rate limiting, trusted hosts, CORS controls, security headers, request IDs, and JSON logs |
 | Windows installer pipeline | Implemented | Builds versioned installer, checksum, manifest, and install/uninstall smoke tests |
 | Automated tests | Implemented | Pytest suite runs locally and through GitHub Actions |
+| Reproducible ML evaluation | Implemented | Versioned grouped manifests, safety metrics, plots, calibration, subgroup and latency reports |
+| Real-model Windows CI | Implemented | Immutable checksum bundle, golden predictions, OOD regression, semantic RAG, secure API, installer build/launch |
+| Controlled pilot tooling | Implemented | SQLite-backed metadata-only outcome, usability, comprehension, timing, and CSV reporting |
+| MLflow model experiments | Implemented | Tracks grouped MobileNetV2 parameters, metrics, latency, reports, and model artifacts in local SQLite |
+| Stakeholder and handoff package | Implemented | Defines workflow, value hypothesis, success criteria, risks, ownership, and production gaps |
+| Fictional insurance RAG companion | Implemented example | Citation-first semantic retrieval, abstention, typed API, human oversight, and evaluation over authored fictional data |
+| Azure readiness gate | Implemented, blocked by evidence | Fails closed until independent evaluation, pilot, tests, security review, and owner approvals exist |
 
 ### Not implemented yet
 
 - persistent vector database;
 - multi-turn conversation memory;
-- hosted cloud deployment;
-- a production out-of-distribution detector for arbitrary non-fruit photos; and
+- hosted cloud deployment (the Azure gate currently blocks it);
+- an independently validated arbitrary-object detector and real-world benchmark;
+- completed human-reviewed pilot observations; and
 - trusted Authenticode signing by default (the release scripts support it, but a
   certificate must be configured).
 
@@ -142,9 +163,12 @@ Use a clear JPEG, PNG, or WebP image containing one apple, banana, or orange
 fruit type. Mixed-fruit scenes, processed food, severe occlusion, and images far
 outside the training distribution are not reliable inputs.
 
-Confidence thresholds reduce ambiguous results, but softmax confidence is not a
-general non-fruit detector. Model accuracy should be reported only with the
-dataset split, class balance, and evaluation method used to measure it.
+Softmax confidence covers only the six configured categories and is not treated
+as general certainty. FreshSense 0.4 retains a separate feature-space gate, but the
+frozen synthetic unsupported false-acceptance rate is still 5.73%. The legacy
+dataset audit also found 100% source-group overlap from legacy test into train,
+so earlier 97-99% results are not independent real-world accuracy. See the
+[model card](docs/MODEL_CARD.md) for the complete evidence and limitations.
 
 ## Run locally
 
@@ -154,6 +178,7 @@ dataset split, class balance, and evaluation method used to measure it.
 - Python 3.11 for source development;
 - a trained Keras model at `models/densenet201.h5`, or an absolute path in
   `FRESHSENSE_MODEL_PATH`; and
+- its calibrated gate at `models/open_set_gate.npz`; and
 - the reviewed catalog and knowledge base in `data/`.
 
 The trained model, datasets, secrets, and generated installers are intentionally
@@ -237,6 +262,8 @@ Common environment variables:
 | Variable | Purpose |
 | --- | --- |
 | `FRESHSENSE_MODEL_PATH` | Absolute path to the trained Keras model |
+| `FRESHSENSE_OPEN_SET_GATE_PATH` | Override the calibrated supported-input gate |
+| `FRESHSENSE_REQUIRE_OPEN_SET_GATE` | Fail startup unless the model-bound gate validates |
 | `FRESHSENSE_FRUIT_CATALOG_PATH` | Override the model-label and fruit catalog |
 | `FRESHSENSE_KNOWLEDGE_BASE_PATH` | Override the curated food knowledge base |
 | `FRESHSENSE_SEMANTIC_RAG` | Enable or disable local semantic retrieval |
@@ -259,18 +286,25 @@ semantic-readiness requirements are also configurable in `utils/config.py`.
 FreshSense-AI/
 |-- agent/                 Agent orchestration and state
 |-- api/                   FastAPI application, schemas, security, and metrics
+|-- artifacts/             Cryptographic runtime/evaluation association manifest
 |-- data/                  Fruit catalog and curated knowledge base
+|-- deployment/            Fail-closed Azure readiness checks and handoff assets
 |-- desktop/               Local history and desktop presentation helpers
 |-- docs/                  Development logs and release documentation
+|-- evaluation/            Dataset manifests, calibration, metrics, plots, and reports
+|-- examples/              Isolated fictional insurance-policy RAG companion
 |-- installer/             Inno Setup definition
+|-- pilot/                 SQLite metadata-only controlled-pilot records and summaries
 |-- scripts/               Embedding, build, verification, signing, and smoke tools
 |-- tests/                 Unit, API, retrieval, safety, history, and release tests
+|-- training/              Grouped MobileNetV2 training and MLflow tracking
 |-- tools/                 Vision, quality, scene, retrieval, and reasoning tools
 |-- utils/                 Configuration, startup validation, catalog, and versioning
 |-- app.py                 Streamlit entry point
 |-- desktop_app.py         Windows desktop entry point
 |-- FreshSenseAI.spec      PyInstaller build definition
-|-- requirements.txt       Pinned complete development/runtime dependencies
+|-- requirements.txt       Pinned production dependencies
+|-- requirements-training.txt  Pinned MLflow experiment dependencies
 `-- VERSION                Application release version
 ```
 
@@ -280,6 +314,20 @@ Run the complete test suite:
 
 ```powershell
 python -m pytest
+```
+
+Verify the exact model, gate, dataset manifest, and report association:
+
+```powershell
+python scripts\verify_model_artifacts.py
+```
+
+Rebuild the grouped legacy report:
+
+```powershell
+python scripts\run_evaluation.py `
+  --manifest evaluation\manifests\legacy_grouped_v1.json `
+  --dataset C:\path\to\fruit_scanner\dataset
 ```
 
 Build the Windows release:
@@ -317,6 +365,15 @@ fruit-specific rewrites when the catalog and model remain consistent.
 ## Documentation
 
 - [Windows release guide](docs/WINDOWS_RELEASE.md)
+- [DenseNet201 model card](docs/MODEL_CARD.md)
+- [Real-world benchmark collection protocol](docs/BENCHMARK_COLLECTION.md)
+- [Limited pilot guide](docs/PILOT_GUIDE.md)
+- [Stakeholder case study](docs/STAKEHOLDER_CASE_STUDY.md)
+- [Technology handoff](docs/TECHNOLOGY_HANDOFF.md)
+- [Model experiments with MLflow](docs/MODEL_EXPERIMENTS.md)
+- [Azure handoff and readiness gate](docs/AZURE_HANDOFF.md)
+- [FreshSense 0.4 development log](docs/DEVELOPMENT_LOG_FRESHSENSE_0_4.md)
+- [FreshSense 0.3 development log](docs/DEVELOPMENT_LOG_FRESHSENSE_0_3.md)
 - [Windows release development log](docs/DEVELOPMENT_LOG_WINDOWS_RELEASE.md)
 - [REST API development log](docs/DEVELOPMENT_LOG_REST_API.md)
 - [Semantic RAG development log](docs/DEVELOPMENT_LOG_SEMANTIC_RAG.md)

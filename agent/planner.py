@@ -20,6 +20,9 @@ class Planner:
         return "run_vision"
 
     def plan_after_inference(self, state: AgentState) -> str:
+        if state.decision == "unsupported_input":
+            return "return_unsupported_result"
+
         if state.prediction is None:
             return "request_retake"
 

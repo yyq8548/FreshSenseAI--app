@@ -127,12 +127,17 @@ try {
 
     $installedApplication = Join-Path $installPath "FreshSenseAI.exe"
     $model = Join-Path $installPath "_internal\models\densenet201.h5"
+    $gate = Join-Path $installPath "_internal\models\open_set_gate.npz"
+    $artifactManifest = Join-Path $installPath "_internal\artifacts\model_manifest.json"
+    $evaluationReport = Join-Path $installPath "_internal\evaluation\reports\current_model\evaluation_report.json"
     $embedding = Get-ChildItem `
         (Join-Path $installPath "_internal\models\embedding_cache") `
         -Recurse -Filter "*.onnx" -File -ErrorAction SilentlyContinue |
         Select-Object -First 1
     $uninstaller = Join-Path $installPath "unins000.exe"
-    foreach ($required in @($installedApplication, $model, $uninstaller)) {
+    foreach ($required in @(
+        $installedApplication, $model, $gate, $artifactManifest, $evaluationReport, $uninstaller
+    )) {
         if (-not (Test-Path -LiteralPath $required -PathType Leaf)) {
             throw "Installed release asset is missing: $required"
         }
@@ -145,6 +150,37 @@ try {
     ).ProductVersion
     if ($installedVersion -ne $Version) {
         throw "Installed application version '$installedVersion' does not match '$Version'."
+    }
+
+    $startupMarker = Join-Path $workDir "installed-startup-$Version.ready"
+    if (Test-Path -LiteralPath $startupMarker) {
+        Remove-Item -LiteralPath $startupMarker -Force
+    }
+    $env:FRESHSENSE_STARTUP_SMOKE_FILE = $startupMarker
+    try {
+        $launchProcess = Start-Process `
+            -FilePath $installedApplication `
+            -PassThru -WindowStyle Hidden
+        for ($attempt = 0; $attempt -lt 120 -and -not (Test-Path -LiteralPath $startupMarker); $attempt++) {
+            Start-Sleep -Milliseconds 500
+            $launchProcess.Refresh()
+            if ($launchProcess.HasExited -and -not (Test-Path -LiteralPath $startupMarker)) {
+                throw "Installed application exited before runtime assets became ready."
+            }
+        }
+        if (-not (Test-Path -LiteralPath $startupMarker)) {
+            throw "Installed application did not initialize its runtime assets within 60 seconds."
+        }
+        $launchProcess.WaitForExit(15000) | Out-Null
+        if (-not $launchProcess.HasExited) {
+            Stop-Process -Id $launchProcess.Id -Force
+            $launchProcess.WaitForExit()
+        }
+    } finally {
+        Remove-Item Env:FRESHSENSE_STARTUP_SMOKE_FILE -ErrorAction SilentlyContinue
+        if (Test-Path -LiteralPath $startupMarker) {
+            Remove-Item -LiteralPath $startupMarker -Force
+        }
     }
 
     $uninstallProcess = Start-Process `
@@ -176,4 +212,4 @@ try {
 }
 
 Write-Host "FreshSense $Version isolated installer smoke passed."
-Write-Host "Install, bundled assets, version metadata, and uninstall were verified."
+Write-Host "Install, bundled assets, desktop launch, version metadata, and uninstall were verified."

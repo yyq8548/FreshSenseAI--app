@@ -1,0 +1,10 @@
+[
+  {"question": "How soon should a policyholder report a discovered loss?", "expected_document_id": "notice_of_loss", "should_answer": true},
+  {"question": "What is the deadline for a requested proof of loss?", "expected_document_id": "proof_of_loss", "should_answer": true},
+  {"question": "What is the fictional property deductible?", "expected_document_id": "property_deductible", "should_answer": true},
+  {"question": "What does the sample policy say about surface-water flooding?", "expected_document_id": "flood_exclusion", "should_answer": true},
+  {"question": "Can the policyholder make temporary repairs?", "expected_document_id": "temporary_repairs", "should_answer": true},
+  {"question": "Can this assistant approve my claim?", "expected_document_id": "human_review", "should_answer": true},
+  {"question": "What is the insured person's favorite restaurant?", "expected_document_id": null, "should_answer": false},
+  {"question": "Predict next year's hurricane count.", "expected_document_id": null, "should_answer": false}
+]

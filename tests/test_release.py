@@ -35,10 +35,10 @@ def _complete_release_assets(tmp_path: Path) -> dict[str, Path]:
 def test_version_is_centralized_and_valid():
     version = read_release_version(ROOT / "VERSION")
 
-    assert version == "0.2.0"
+    assert version == "0.4.0"
     assert APP_VERSION == version
     assert read_app_version(ROOT / "VERSION") == version
-    assert windows_version_tuple(version) == (0, 2, 0, 0)
+    assert windows_version_tuple(version) == (0, 4, 0, 0)
 
 
 def test_invalid_or_unavailable_runtime_version_uses_safe_label(tmp_path):
@@ -50,18 +50,18 @@ def test_invalid_or_unavailable_runtime_version_uses_safe_label(tmp_path):
 
 
 def test_windows_version_metadata_matches_release_version():
-    metadata = render_windows_version_info("0.2.0")
+    metadata = render_windows_version_info("0.4.0")
 
-    assert "filevers=(0, 2, 0, 0)" in metadata
-    assert "StringStruct('FileVersion', '0.2.0')" in metadata
-    assert "StringStruct('ProductVersion', '0.2.0')" in metadata
+    assert "filevers=(0, 4, 0, 0)" in metadata
+    assert "StringStruct('FileVersion', '0.4.0')" in metadata
+    assert "StringStruct('ProductVersion', '0.4.0')" in metadata
     assert "FreshSenseAI.exe" in metadata
 
 
 def test_release_asset_validation_accepts_complete_local_bundle(tmp_path):
     assets = _complete_release_assets(tmp_path)
 
-    assert validate_release_assets(**assets) == "0.2.0"
+    assert validate_release_assets(**assets) == "0.4.0"
 
 
 def test_release_asset_validation_fails_closed_without_embedding_model(tmp_path):
@@ -87,6 +87,8 @@ def test_pyinstaller_and_installer_use_versioned_release_inputs():
     assert '("VERSION", ".")' in spec
     assert 'version="work/windows_version_info.txt"' in spec
     assert '("models/densenet201.h5", "models")' in spec
+    assert '("models/open_set_gate.npz", "models")' in spec
+    assert '("artifacts/model_manifest.json", "artifacts")' in spec
     assert "#ifndef MyAppVersion" in installer
     assert "#ifndef MyAppSourceDir" in installer
     assert '#define MyOutputBaseFilename "FreshSenseAI-Setup-" + MyAppVersion' in installer

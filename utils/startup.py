@@ -8,6 +8,7 @@ from typing import Iterable
 
 from utils.config import FRUIT_CATALOG_PATH
 from utils.fruit_catalog import FruitCatalogError, load_fruit_catalog
+from tools.open_set import OpenSetGateError, validate_open_set_artifact
 
 
 class StartupValidationError(RuntimeError):
@@ -18,6 +19,8 @@ def validate_startup(
     model_path: str,
     knowledge_base_path: str,
     fruit_catalog_path: str = FRUIT_CATALOG_PATH,
+    open_set_gate_path: str | None = None,
+    require_open_set_gate: bool = False,
 ) -> None:
     """Validate required runtime files before constructing the application."""
     model = Path(model_path)
@@ -44,6 +47,21 @@ def validate_startup(
         raise StartupValidationError("The food knowledge base is not valid JSON.") from exc
 
     _validate_documents(documents, supported_fruits=set(catalog.fruit_ids))
+
+    if require_open_set_gate and not open_set_gate_path:
+        raise StartupValidationError("A calibrated supported-input gate is required.")
+    if open_set_gate_path:
+        try:
+            validate_open_set_artifact(
+                open_set_gate_path,
+                model_path=model_path,
+                expected_labels=catalog.class_names,
+            )
+        except OpenSetGateError as exc:
+            if require_open_set_gate:
+                raise StartupValidationError(
+                    f"The supported-input gate is invalid: {exc}"
+                ) from exc
 
 
 def _validate_documents(documents: object, supported_fruits: set[str]) -> None:

@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import os
 import sys
+from io import BytesIO
 from pathlib import Path
 
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
 
 from PIL import Image
-from PySide6.QtCore import QObject, Qt, QThread, Signal
+from PySide6.QtCore import QObject, Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QDragEnterEvent, QDropEvent, QFont, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -32,7 +33,15 @@ from agent.state import AgentState
 from desktop.history import HistoryStorageError, ScanHistoryRecord, ScanHistoryStore
 from desktop.history_dialog import HistoryDialog
 from desktop.presenter import result_summary, supported_scope_text
-from utils.config import FRUIT_CATALOG_PATH, KNOWLEDGE_BASE_PATH, MODEL_PATH, SAFETY_NOTICE
+from tools.explainability import render_gradcam_overlay
+from utils.config import (
+    FRUIT_CATALOG_PATH,
+    KNOWLEDGE_BASE_PATH,
+    MODEL_PATH,
+    OPEN_SET_GATE_PATH,
+    REQUIRE_OPEN_SET_GATE,
+    SAFETY_NOTICE,
+)
 from utils.startup import StartupValidationError, validate_startup
 from utils.version import APP_VERSION
 
@@ -69,12 +78,20 @@ class ModelLoader(QObject):
 
     def run(self) -> None:
         try:
-            validate_startup(MODEL_PATH, KNOWLEDGE_BASE_PATH, FRUIT_CATALOG_PATH)
+            validate_startup(
+                MODEL_PATH,
+                KNOWLEDGE_BASE_PATH,
+                FRUIT_CATALOG_PATH,
+                OPEN_SET_GATE_PATH,
+                REQUIRE_OPEN_SET_GATE,
+            )
             self.loaded.emit(
                 FruitScannerAgent(
                     model_path=MODEL_PATH,
                     catalog_path=FRUIT_CATALOG_PATH,
                     knowledge_base_path=KNOWLEDGE_BASE_PATH,
+                    open_set_gate_path=OPEN_SET_GATE_PATH,
+                    require_open_set_gate=REQUIRE_OPEN_SET_GATE,
                 )
             )
         except (StartupValidationError, RuntimeError) as exc:
@@ -155,6 +172,12 @@ class MainWindow(QMainWindow):
         self.preview = DropImageLabel()
         self.preview.image_selected.connect(self.select_image)
         left_layout.addWidget(self.preview, 1)
+
+        self.explanation_note = QLabel("")
+        self.explanation_note.setObjectName("explanationNote")
+        self.explanation_note.setWordWrap(True)
+        self.explanation_note.hide()
+        left_layout.addWidget(self.explanation_note)
 
         choose_button = QPushButton("Choose photo")
         choose_button.clicked.connect(self.choose_image)
@@ -241,6 +264,13 @@ class MainWindow(QMainWindow):
                 "Vision model ready · Semantic search unavailable; using keyword fallback"
             )
         self._update_analyze_state()
+        smoke_marker = os.getenv("FRESHSENSE_STARTUP_SMOKE_FILE")
+        if smoke_marker:
+            Path(smoke_marker).write_text(
+                "ready\n" if agent.retriever_tool.semantic_ready else "ready-keyword\n",
+                encoding="utf-8",
+            )
+            QTimer.singleShot(0, QApplication.instance().quit)
 
     def _model_failed(self, message: str) -> None:
         self.progress.hide()
@@ -282,6 +312,8 @@ class MainWindow(QMainWindow):
         self.confidence.clear()
         self.recommendation.clear()
         self.details.clear()
+        self.explanation_note.clear()
+        self.explanation_note.hide()
         self._update_analyze_state()
 
     def analyze(self) -> None:
@@ -317,12 +349,39 @@ class MainWindow(QMainWindow):
         )
         self.recommendation.setText(summary["recommendation"])
         self.details.setText(summary["details"])
+        self._show_explanation(state)
         history_saved = self._record_history(state, summary)
         self.status.setText(
             "Analysis complete"
             if history_saved
             else "Analysis complete · History was not saved"
         )
+
+    def _show_explanation(self, state: AgentState) -> None:
+        metadata = state.metadata.get("explainability", {})
+        if state.decision != "accept_prediction" or metadata.get("method") != "grad_cam":
+            self.explanation_note.clear()
+            self.explanation_note.hide()
+            return
+        try:
+            overlay = render_gradcam_overlay(state.image, metadata["heatmap"])
+            buffer = BytesIO()
+            overlay.save(buffer, format="PNG")
+            pixmap = QPixmap()
+            if not pixmap.loadFromData(buffer.getvalue(), "PNG"):
+                raise ValueError("Qt could not load the explanation overlay.")
+            self.preview.setPixmap(
+                pixmap.scaled(
+                    self.preview.size(),
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+            )
+            self.explanation_note.setText(str(metadata["disclaimer"]))
+            self.explanation_note.show()
+        except Exception:
+            self.explanation_note.clear()
+            self.explanation_note.hide()
 
     def _record_history(self, state: AgentState, summary: dict[str, str]) -> bool:
         if self.current_path is None:
@@ -376,6 +435,7 @@ def _stylesheet() -> str:
         QLabel#safetyNotice { background: #FFF4D8; border: 1px solid #E7C66D; border-radius: 9px; padding: 11px 14px; color: #604B16; }
         QFrame#card { background: white; border: 1px solid #D8E2DA; border-radius: 14px; }
         QLabel#dropZone { background: #F8FAF8; border: 2px dashed #8EB79A; border-radius: 12px; color: #4B6854; font-size: 17px; }
+        QLabel#explanationNote { background: #EEF4FF; border: 1px solid #B8C9E8; border-radius: 8px; padding: 8px; color: #314C73; font-size: 12px; }
         QPushButton { min-height: 42px; border: 1px solid #9CB7A3; border-radius: 9px; background: white; font-weight: 600; padding: 0 18px; }
         QPushButton:hover { background: #EEF5F0; }
         QPushButton#primaryButton { background: #237A45; color: white; border-color: #237A45; }

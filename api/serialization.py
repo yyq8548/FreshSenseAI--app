@@ -5,6 +5,7 @@ from __future__ import annotations
 from agent.state import AgentState
 from api.models import (
     AnalyzeResponse,
+    ExplainabilityResponse,
     ImageQualityResponse,
     PredictionResponse,
     ReasoningResponse,
@@ -13,15 +14,21 @@ from api.models import (
     SceneAnalysisResponse,
     WarningResponse,
 )
+from tools.explainability import gradcam_overlay_base64
 from utils.config import SAFETY_NOTICE
 from utils.fruit_catalog import FruitCatalog
 
 
-def serialize_agent_state(state: AgentState, catalog: FruitCatalog) -> AnalyzeResponse:
+def serialize_agent_state(
+    state: AgentState,
+    catalog: FruitCatalog,
+    *,
+    include_explanation_overlay: bool = False,
+) -> AnalyzeResponse:
     """Create a response without exposing withheld or internal model details."""
     prediction = None
     confidence = None
-    if state.prediction is not None and state.decision != "uncertain_input":
+    if state.prediction is not None and state.decision == "accept_prediction":
         class_definition = catalog.class_for_label(state.prediction.class_name)
         prediction = PredictionResponse(
             class_name=state.prediction.class_name,
@@ -94,6 +101,28 @@ def serialize_agent_state(state: AgentState, catalog: FruitCatalog) -> AnalyzeRe
             source=state.reasoning.source,
         )
 
+    explainability = None
+    explanation_metadata = state.metadata.get("explainability", {})
+    if (
+        state.decision == "accept_prediction"
+        and state.prediction is not None
+        and explanation_metadata.get("method") == "grad_cam"
+    ):
+        overlay = None
+        if include_explanation_overlay:
+            overlay = gradcam_overlay_base64(
+                state.image,
+                explanation_metadata["heatmap"],
+            )
+        explainability = ExplainabilityResponse(
+            target_class=str(explanation_metadata["target_class"]),
+            layer=str(explanation_metadata["layer"]),
+            peak_activation=float(explanation_metadata["peak_activation"]),
+            active_fraction=float(explanation_metadata["active_fraction"]),
+            overlay_png_base64=overlay,
+            disclaimer=str(explanation_metadata["disclaimer"]),
+        )
+
     return AnalyzeResponse(
         decision=state.decision,
         status=state.status,
@@ -104,6 +133,7 @@ def serialize_agent_state(state: AgentState, catalog: FruitCatalog) -> AnalyzeRe
         retrieval=retrieval,
         warnings=warnings,
         reasoning=reasoning,
+        explainability=explainability,
         recommendation=state.recommendation,
         safety_notice=SAFETY_NOTICE,
     )

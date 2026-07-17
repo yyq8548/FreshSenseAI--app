@@ -89,6 +89,24 @@ def test_startup_accepts_valid_runtime_assets(tmp_path):
     validate_startup(str(model), str(knowledge_base), str(catalog))
 
 
+def test_startup_fails_closed_when_required_gate_is_missing(tmp_path):
+    model = tmp_path / "model.keras"
+    model.write_bytes(b"model")
+    knowledge_base = tmp_path / "knowledge.json"
+    _write_valid_knowledge_base(knowledge_base)
+    catalog = tmp_path / "catalog.json"
+    _write_valid_catalog(catalog)
+
+    with pytest.raises(StartupValidationError, match="gate is required"):
+        validate_startup(
+            str(model),
+            str(knowledge_base),
+            str(catalog),
+            open_set_gate_path=None,
+            require_open_set_gate=True,
+        )
+
+
 def test_startup_rejects_missing_fruit_catalog(tmp_path):
     model = tmp_path / "model.keras"
     model.write_bytes(b"model")
