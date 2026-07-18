@@ -10,6 +10,7 @@ a = Analysis(
     binaries=tensorflow_binaries,
     datas=[
         ("VERSION", "."),
+        ("assets/freshsense-hero-still-life.png", "assets"),
         ("models/densenet201.h5", "models"),
         ("models/open_set_gate.npz", "models"),
         ("models/embedding_cache", "models/embedding_cache"),

@@ -124,7 +124,7 @@ release notes.
 Users can verify the installer with:
 
 ``` powershell
-Get-FileHash .\FreshSenseAI-Setup-0.5.0.exe -Algorithm SHA256
+Get-FileHash .\FreshSenseAI-Setup-0.5.1.exe -Algorithm SHA256
 ```
 
 Compare the result with the `.sha256` file or release manifest.
