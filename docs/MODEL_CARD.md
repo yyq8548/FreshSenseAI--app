@@ -2,7 +2,7 @@
 
 ## Model details
 
-- Application release: FreshSense 0.4.0
+- Application release: FreshSense 0.5.0 Public Beta
 - Task: six-class visible fruit freshness classification
 - Supported fruit identities: apple, banana, orange
 - Output order: `freshapples`, `freshbanana`, `freshoranges`, `rottenapples`, `rottenbanana`, `rottenoranges`
@@ -98,6 +98,9 @@ a validated arbitrary-object detector.
   never be interpreted as general certainty.
 - The current model was trained on a leaked legacy split.
 - Freshness labels are visual categories and do not establish food safety.
+- Earlier informal testing reportedly included three incorrectly distinguished
+  orange cases. The photos and case-level metadata have not yet been reviewed,
+  so no orange error rate or improvement claim is available.
 
 ## Required evidence before a production claim
 

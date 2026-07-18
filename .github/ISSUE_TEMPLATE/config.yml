@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: FreshSense safety information
+    url: https://github.com/yyq8548/FreshSenseAI--app/blob/main/docs/MODEL_CARD.md
+    about: Review intended use, limitations, and known failure modes before reporting a result.

@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "recorded_for_release": "0.5.0",
+  "source": "retrospective user report supplied by the project owner",
+  "participants": {
+    "reported_minimum": 50,
+    "exact_count_available": false
+  },
+  "observations": {
+    "total_images": null,
+    "successful_identifications": null,
+    "orange_misclassification_reports": 3,
+    "result_comprehension_count": null,
+    "warning_comprehension_count": null,
+    "median_task_seconds": null
+  },
+  "reported_feedback": "Most participants provided positive feedback for common supermarket fruit freshness analysis.",
+  "evidence_limitations": [
+    "Case-level records were not collected for the earlier sessions.",
+    "The exact participant and image totals are not yet available.",
+    "No before-and-after orange error rate can be calculated from this aggregate report.",
+    "The three orange cases still require independent reproduction and review."
+  ],
+  "next_collection_asset": "pilot/templates/public_beta_observations.csv"
+}

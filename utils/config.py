@@ -7,7 +7,7 @@ import sys
 
 APP_TITLE = "FreshSense AI"
 APP_ICON = "🍎"
-APP_LAYOUT = "centered"
+APP_LAYOUT = "wide"
 
 PROJECT_ROOT = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
 MODEL_PATH = os.getenv("FRESHSENSE_MODEL_PATH", str(PROJECT_ROOT / "models" / "densenet201.h5"))

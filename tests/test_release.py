@@ -35,10 +35,10 @@ def _complete_release_assets(tmp_path: Path) -> dict[str, Path]:
 def test_version_is_centralized_and_valid():
     version = read_release_version(ROOT / "VERSION")
 
-    assert version == "0.4.0"
+    assert version == "0.5.0"
     assert APP_VERSION == version
     assert read_app_version(ROOT / "VERSION") == version
-    assert windows_version_tuple(version) == (0, 4, 0, 0)
+    assert windows_version_tuple(version) == (0, 5, 0, 0)
 
 
 def test_invalid_or_unavailable_runtime_version_uses_safe_label(tmp_path):
@@ -50,18 +50,18 @@ def test_invalid_or_unavailable_runtime_version_uses_safe_label(tmp_path):
 
 
 def test_windows_version_metadata_matches_release_version():
-    metadata = render_windows_version_info("0.4.0")
+    metadata = render_windows_version_info("0.5.0")
 
-    assert "filevers=(0, 4, 0, 0)" in metadata
-    assert "StringStruct('FileVersion', '0.4.0')" in metadata
-    assert "StringStruct('ProductVersion', '0.4.0')" in metadata
+    assert "filevers=(0, 5, 0, 0)" in metadata
+    assert "StringStruct('FileVersion', '0.5.0')" in metadata
+    assert "StringStruct('ProductVersion', '0.5.0')" in metadata
     assert "FreshSenseAI.exe" in metadata
 
 
 def test_release_asset_validation_accepts_complete_local_bundle(tmp_path):
     assets = _complete_release_assets(tmp_path)
 
-    assert validate_release_assets(**assets) == "0.4.0"
+    assert validate_release_assets(**assets) == "0.5.0"
 
 
 def test_release_asset_validation_fails_closed_without_embedding_model(tmp_path):
@@ -126,6 +126,9 @@ def test_windows_build_pipeline_tests_packages_hashes_and_verifies():
     assert "Get-FileHash" in finalize_script
     assert "Get-AuthenticodeSignature" in finalize_script
     assert "ConvertTo-Json" in finalize_script
+    assert 'release_channel = "public-beta"' in finalize_script
+    assert 'photo_retention = "none-by-default"' in finalize_script
+    assert "known_limitations" in finalize_script
     assert "Get-FileHash" in verify_script
     assert "ConvertFrom-Json" in verify_script
     assert "RequireSignedRelease" in build_script

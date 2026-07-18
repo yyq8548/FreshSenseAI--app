@@ -1,5 +1,5 @@
 {
-  "application_version": "0.4.0",
+  "application_version": "0.5.0",
   "artifacts": {
     "evaluation_manifest": {
       "bytes": 9233997,
@@ -22,9 +22,9 @@
       "sha256": "a82b997291ef7ce6543cb2928f9e37dc8149578801f70dceff52beea050db3f6"
     },
     "knowledge_base": {
-      "bytes": 2285,
+      "bytes": 2341,
       "path": "data/food_knowledge_base.json",
-      "sha256": "7ec428df9afae0c2aa81aa17097752dc30e6f73cfba4e0ef33d640634299f73d"
+      "sha256": "3d40306ea8de523ce703eee38c3837f22cc4a14fab7dedad6118475589086efd"
     },
     "open_set_gate": {
       "bytes": 45726,
@@ -79,6 +79,6 @@
     "banana",
     "orange"
   ],
-  "generated_at_utc": "2026-07-17T06:19:24.101551+00:00",
+  "generated_at_utc": "2026-07-18T07:58:18.644769+00:00",
   "schema_version": 1
 }
