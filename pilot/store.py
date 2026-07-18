@@ -264,6 +264,49 @@ class PilotStore:
             imported += 1
         return imported
 
+    def import_csv(self, source: str | Path) -> int:
+        """Import reviewed metadata from the public-beta observation template."""
+        imported = 0
+        with Path(source).open("r", encoding="utf-8-sig", newline="") as handle:
+            reader = csv.DictReader(handle)
+            required = {
+                "sample_id",
+                "reviewer",
+                "app_decision",
+                "predicted_freshness",
+                "reviewed_outcome",
+                "confidence",
+            }
+            if not reader.fieldnames or not required.issubset(reader.fieldnames):
+                raise PilotStoreError("Pilot CSV is missing required columns.")
+            for row_number, row in enumerate(reader, start=2):
+                if not any((value or "").strip() for value in row.values()):
+                    continue
+                try:
+                    self.add(
+                        sample_id=row["sample_id"],
+                        reviewer=row["reviewer"],
+                        app_decision=row["app_decision"],
+                        predicted_freshness=_optional_text(row.get("predicted_freshness")),
+                        reviewed_outcome=row["reviewed_outcome"],
+                        confidence=_optional_float(row.get("confidence")),
+                        device=row.get("device", "unknown"),
+                        lighting=row.get("lighting", "unknown"),
+                        background=row.get("background", "unknown"),
+                        notes=row.get("notes", ""),
+                        task_seconds=_optional_float(row.get("task_seconds")),
+                        result_understood=_optional_bool(row.get("result_understood")),
+                        warning_helpful=_optional_bool(row.get("warning_helpful")),
+                        would_use_again=_optional_bool(row.get("would_use_again")),
+                        usability_rating=_optional_int(row.get("usability_rating")),
+                    )
+                except (KeyError, TypeError, ValueError, PilotStoreError) as exc:
+                    raise PilotStoreError(
+                        f"Pilot CSV row {row_number} is invalid: {exc}"
+                    ) from exc
+                imported += 1
+        return imported
+
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.path)
         connection.row_factory = sqlite3.Row
@@ -304,6 +347,32 @@ def _validate_record(**values: object) -> None:
 
 def _sqlite_value(value: object) -> int | None:
     return None if value is None else int(bool(value))
+
+
+def _optional_text(value: str | None) -> str | None:
+    cleaned = (value or "").strip()
+    return cleaned or None
+
+
+def _optional_float(value: str | None) -> float | None:
+    cleaned = (value or "").strip()
+    return float(cleaned) if cleaned else None
+
+
+def _optional_int(value: str | None) -> int | None:
+    cleaned = (value or "").strip()
+    return int(cleaned) if cleaned else None
+
+
+def _optional_bool(value: str | None) -> bool | None:
+    cleaned = (value or "").strip().lower()
+    if not cleaned:
+        return None
+    if cleaned in {"true", "yes", "1"}:
+        return True
+    if cleaned in {"false", "no", "0"}:
+        return False
+    raise ValueError("boolean values must be yes/no, true/false, or 1/0")
 
 
 def _boolean_rate(records: list[dict[str, object]], field: str) -> float | None:

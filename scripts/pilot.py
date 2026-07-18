@@ -45,6 +45,8 @@ def main() -> int:
     export.add_argument("--output", required=True, type=Path)
     migrate = subparsers.add_parser("migrate-jsonl")
     migrate.add_argument("--source", required=True, type=Path)
+    import_csv = subparsers.add_parser("import-csv")
+    import_csv.add_argument("--source", required=True, type=Path)
     args = parser.parse_args()
 
     store = PilotStore(args.store)
@@ -75,9 +77,12 @@ def main() -> int:
     elif args.command == "export":
         store.export_csv(args.output)
         print(f"Pilot CSV exported: {args.output}")
-    else:
+    elif args.command == "migrate-jsonl":
         imported = store.import_jsonl(args.source)
         print(f"Imported {imported} legacy records into: {args.store}")
+    else:
+        imported = store.import_csv(args.source)
+        print(f"Imported {imported} public-beta records into: {args.store}")
     return 0
 
 

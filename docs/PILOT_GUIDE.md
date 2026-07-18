@@ -59,6 +59,16 @@ python scripts\pilot.py --store C:\FreshSensePilot\pilot.sqlite3 migrate-jsonl `
   --source C:\FreshSensePilot\pilot.jsonl
 ```
 
+To import the public-beta observation template:
+
+```powershell
+python scripts\pilot.py --store C:\FreshSensePilot\pilot.sqlite3 import-csv `
+  --source C:\FreshSensePilot\public_beta_observations.csv
+```
+
+See `docs/PUBLIC_BETA_PILOT.md` for the known 50-plus participant aggregate
+baseline, missing evidence, and the required 0.5 retest report.
+
 ## Exit criteria
 
 Define thresholds before collection begins. At minimum, require zero unexplained

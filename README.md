@@ -1,19 +1,68 @@
 # FreshSense AI
 
-FreshSense AI is a Windows-first fruit freshness decision-support application.
-It combines a trained image classifier, confidence and image-quality checks,
-local retrieval-augmented generation (RAG), and optional GPT-5 reasoning to
-produce a freshness result with grounded storage and safety guidance.
+FreshSense is a Windows-first AI decision-support application that explains
+visible freshness patterns in apples, bananas, and oranges. It combines a
+DenseNet201 image classifier, supported-input and confidence gates, Grad-CAM,
+local semantic RAG, optional GPT-5 reasoning, and reviewed fallback guidance.
 
-> **Safety notice:** FreshSense evaluates visible image patterns only. It cannot
-> determine whether food is safe to eat or detect internal spoilage,
-> contamination, odor, or texture. When in doubt, do not consume the fruit.
+[![Download FreshSense AI for Windows](https://img.shields.io/badge/Download-Windows%20Public%20Beta-294D31?style=for-the-badge&logo=windows)](https://github.com/yyq8548/FreshSenseAI--app/releases/download/v0.5.0/FreshSenseAI-Setup-0.5.0.exe)
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-2.19-orange)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.139-009688)
-![Tests](https://img.shields.io/badge/tests-pytest%20%2B%20GitHub%20Actions-brightgreen)
-![Release](https://img.shields.io/badge/release-0.4.0-blueviolet)
+![Tests](https://img.shields.io/badge/tests-125%2B%20automated-brightgreen)
+![Release](https://img.shields.io/badge/release-0.5.0%20Public%20Beta-blueviolet)
+
+![FreshSense AI desktop result](docs/images/freshsense-desktop-demo.png)
+
+[Watch the 30-second beta walkthrough](docs/demo/freshsense-public-beta-demo.mp4)
+
+## Try it in three steps
+
+1. Download `FreshSenseAI-Setup-0.5.0.exe` from the latest GitHub Release and
+   compare its SHA-256 with the published checksum.
+2. Install and choose one clear photo containing an apple, banana, or orange.
+3. Select **Analyze freshness**, then review the result, risk guidance, storage
+   advice, safety warning, and optional model-influence view.
+
+No Python, virtual environment, Docker, model download, or API setup is required
+for the packaged Windows beta.
+
+> **Safety notice:** FreshSense evaluates visible image patterns only. It cannot
+> determine whether food is safe to eat or detect internal spoilage,
+> contamination, odor, texture, pathogens, or chemical hazards. When in doubt,
+> do not consume the fruit.
+
+## Supported input
+
+- One clear apple, banana, or orange fruit type per image.
+- JPEG, PNG, or WebP for the Streamlit interface; JPEG or PNG for desktop.
+- Close framing, useful lighting, and limited occlusion.
+
+Mixed fruit, other produce, packaged food, people, drawings, empty scenes, and
+severely degraded photos are outside the intended input contract. FreshSense
+can return unsupported, uncertain, or retake guidance instead of exposing a
+tentative freshness label.
+
+## Privacy by default
+
+- Desktop and Streamlit analysis do not create an application copy of a photo.
+- Photos are not automatically uploaded to GitHub or a FreshSense server.
+- Local scan history contains metadata only and can be exported or cleared.
+- Optional GPT-5 reasoning sends prediction and retrieved text, not the photo.
+- The feedback action opens a prefilled GitHub issue without attaching the
+  analyzed photo. Testers decide whether to add a de-identified image.
+
+## Current evidence limits
+
+The model's six-class confidence is not general certainty. The legacy dataset
+contains source-group leakage, so earlier 97 to 99 percent test results are not
+independent real-world accuracy. The frozen synthetic unsupported
+false-acceptance rate is 5.73 percent and does not replace testing with real
+unsupported photos. Earlier informal testing reportedly involved more than 50
+users and three orange errors, but case-level counts and post-change retesting
+are not complete. See the [model card](docs/MODEL_CARD.md) and
+[public-beta pilot plan](docs/PUBLIC_BETA_PILOT.md).
 
 ## What FreshSense does
 
@@ -119,7 +168,7 @@ flowchart TD
 | GPT-5 reasoning | Implemented, optional | Uses retrieved evidence when an API key is configured |
 | Rule-based reasoning | Implemented | Provides reviewed offline guidance and GPT failure fallback |
 | Windows desktop UI | Implemented | Photo selection, analysis, results, warnings, and history controls |
-| Streamlit UI | Implemented | Browser-based local demonstration interface |
+| Streamlit UI | Implemented | Responsive scanner, bundled samples, evidence hierarchy, safety states, and progressive technical disclosure |
 | Local scan history | Implemented | Stores up to 200 metadata-only records and supports CSV export and clearing |
 | REST API | Implemented | Health, analysis, metrics, OpenAPI documentation, validation, and structured errors |
 | API hardening | Implemented | Optional API key, rate limiting, trusted hosts, CORS controls, security headers, request IDs, and JSON logs |
@@ -164,7 +213,7 @@ fruit type. Mixed-fruit scenes, processed food, severe occlusion, and images far
 outside the training distribution are not reliable inputs.
 
 Softmax confidence covers only the six configured categories and is not treated
-as general certainty. FreshSense 0.4 retains a separate feature-space gate, but the
+as general certainty. FreshSense 0.5 retains a separate feature-space gate, but the
 frozen synthetic unsupported false-acceptance rate is still 5.73%. The legacy
 dataset audit also found 100% source-group overlap from legacy test into train,
 so earlier 97-99% results are not independent real-world accuracy. See the
@@ -211,6 +260,12 @@ They do not need Python, a virtual environment, TensorFlow, or Docker.
 ```powershell
 streamlit run app.py
 ```
+
+The redesigned Streamlit experience includes a real scanner workspace, bundled
+apple, banana, and orange samples, explicit loading and withheld-result states,
+retrieval evidence, Grad-CAM when available, technical diagnostics, the agent
+trace, and a privacy-conscious incorrect-result link. Bundled samples demonstrate
+the supported interaction only; they are not independent accuracy evidence.
 
 ### REST API
 
@@ -299,6 +354,7 @@ FreshSense-AI/
 |-- tests/                 Unit, API, retrieval, safety, history, and release tests
 |-- training/              Grouped MobileNetV2 training and MLflow tracking
 |-- tools/                 Vision, quality, scene, retrieval, and reasoning tools
+|-- ui/                    Streamlit presentation components, styles, and sample discovery
 |-- utils/                 Configuration, startup validation, catalog, and versioning
 |-- app.py                 Streamlit entry point
 |-- desktop_app.py         Windows desktop entry point
@@ -365,6 +421,9 @@ fruit-specific rewrites when the catalog and model remain consistent.
 ## Documentation
 
 - [Windows release guide](docs/WINDOWS_RELEASE.md)
+- [FreshSense 0.5 Public Beta release notes](docs/releases/0.5.0.md)
+- [Public Beta pilot and retest plan](docs/PUBLIC_BETA_PILOT.md)
+- [Orange reliability plan](docs/ORANGE_RELIABILITY_PLAN.md)
 - [DenseNet201 model card](docs/MODEL_CARD.md)
 - [Real-world benchmark collection protocol](docs/BENCHMARK_COLLECTION.md)
 - [Limited pilot guide](docs/PILOT_GUIDE.md)

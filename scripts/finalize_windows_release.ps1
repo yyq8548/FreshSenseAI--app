@@ -31,11 +31,22 @@ $manifest = [ordered]@{
     schema_version = 1
     app_name = "FreshSense AI"
     version = $Version
+    release_channel = "public-beta"
     architecture = "windows-x64"
     installer = $installerName
     sha256 = $sha256
     signed = ($signature.Status -eq "Valid")
     signature_status = $signature.Status.ToString()
+    photo_retention = "none-by-default"
+    safety_notice = (
+        "Visual decision support only. FreshSense cannot determine whether food is safe to eat."
+    )
+    known_limitations = @(
+        "Supports one clear apple, banana, or orange fruit type per photo.",
+        "The current model does not have an independent real-world accuracy estimate.",
+        "Unsupported and mixed-fruit images can still be accepted incorrectly.",
+        "The unsigned beta can trigger a Windows unrecognized-publisher warning."
+    )
     built_at_utc = [DateTime]::UtcNow.ToString("o")
 }
 $manifestPath = Join-Path $outputDir "FreshSenseAI-Release-$Version.json"

@@ -18,6 +18,11 @@ It installs under `%LOCALAPPDATA%\Programs\FreshSense AI`, creates a Start Menu
 shortcut, offers an optional Desktop shortcut, supports upgrades using a stable
 application ID, and registers an uninstaller.
 
+For public-beta builds, the release manifest also records the release channel,
+default photo-retention behavior, safety notice, signature status, and known
+limitations. An unsigned beta may trigger a Windows unrecognized-publisher
+warning even when its SHA-256 checksum is correct.
+
 ## Build prerequisites
 
 1. Windows 10 or Windows 11 on x64 hardware.
@@ -119,7 +124,7 @@ release notes.
 Users can verify the installer with:
 
 ``` powershell
-Get-FileHash .\FreshSenseAI-Setup-0.2.0.exe -Algorithm SHA256
+Get-FileHash .\FreshSenseAI-Setup-0.5.0.exe -Algorithm SHA256
 ```
 
 Compare the result with the `.sha256` file or release manifest.

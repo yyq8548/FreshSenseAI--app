@@ -10,8 +10,8 @@ from pathlib import Path
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
 
 from PIL import Image
-from PySide6.QtCore import QObject, Qt, QThread, QTimer, Signal
-from PySide6.QtGui import QDragEnterEvent, QDropEvent, QFont, QPixmap
+from PySide6.QtCore import QObject, Qt, QThread, QTimer, QUrl, Signal
+from PySide6.QtGui import QDesktopServices, QDragEnterEvent, QDropEvent, QFont, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -42,6 +42,7 @@ from utils.config import (
     REQUIRE_OPEN_SET_GATE,
     SAFETY_NOTICE,
 )
+from utils.feedback import build_feedback_url
 from utils.startup import StartupValidationError, validate_startup
 from utils.version import APP_VERSION
 
@@ -128,6 +129,7 @@ class MainWindow(QMainWindow):
         self.agent: FruitScannerAgent | None = None
         self.current_image: Image.Image | None = None
         self.current_path: str | None = None
+        self.last_state: AgentState | None = None
         self._model_thread: QThread | None = None
         self._model_worker: ModelLoader | None = None
         self._analysis_thread: QThread | None = None
@@ -186,6 +188,14 @@ class MainWindow(QMainWindow):
         history_button = QPushButton("View scan history")
         history_button.clicked.connect(self.show_history)
         left_layout.addWidget(history_button)
+
+        self.feedback_button = QPushButton("Report incorrect result")
+        self.feedback_button.setEnabled(False)
+        self.feedback_button.setToolTip(
+            "Opens a prefilled GitHub issue without attaching your photo."
+        )
+        self.feedback_button.clicked.connect(self.report_incorrect_result)
+        left_layout.addWidget(self.feedback_button)
 
         self.analyze_button = QPushButton("Analyze freshness")
         self.analyze_button.setObjectName("primaryButton")
@@ -339,6 +349,8 @@ class MainWindow(QMainWindow):
         thread.start()
 
     def _show_result(self, state: AgentState) -> None:
+        self.last_state = state
+        self.feedback_button.setEnabled(True)
         summary = result_summary(
             state,
             catalog=self.agent.catalog if self.agent else None,
@@ -409,6 +421,11 @@ class MainWindow(QMainWindow):
 
     def show_history(self) -> None:
         HistoryDialog(self.history_store, self).exec()
+
+    def report_incorrect_result(self) -> None:
+        if self.last_state is None:
+            return
+        QDesktopServices.openUrl(QUrl(build_feedback_url(self.last_state)))
 
     def _analysis_failed(self, message: str) -> None:
         self.status.setText("Analysis failed")

@@ -67,3 +67,31 @@ def test_pilot_database_contains_no_photo_or_filename_columns(tmp_path):
     assert "photo" not in columns
     assert "photo_path" not in columns
     assert "filename" not in columns
+
+
+def test_pilot_imports_structured_public_beta_csv(tmp_path):
+    source = tmp_path / "observations.csv"
+    source.write_text(
+        "sample_id,reviewer,app_decision,predicted_freshness,reviewed_outcome,confidence,device,lighting,background,task_seconds,result_understood,warning_helpful,would_use_again,usability_rating,notes\n"
+        "orange-001,participant-001,accept_prediction,fresh,rotten,0.91,phone-a,indoor-warm,kitchen,21.5,yes,yes,no,3,orange error\n",
+        encoding="utf-8",
+    )
+    store = PilotStore(tmp_path / "pilot.sqlite3")
+
+    assert store.import_csv(source) == 1
+    summary = store.summary()
+    assert summary["records"] == 1
+    assert summary["categories"]["false_fresh"] == 1
+    assert summary["median_task_seconds"] == 21.5
+
+
+def test_pilot_csv_import_rejects_invalid_boolean(tmp_path):
+    source = tmp_path / "observations.csv"
+    source.write_text(
+        "sample_id,reviewer,app_decision,predicted_freshness,reviewed_outcome,confidence,result_understood\n"
+        "orange-001,participant-001,accept_prediction,fresh,rotten,0.91,maybe\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(PilotStoreError, match="row 2"):
+        PilotStore(tmp_path / "pilot.sqlite3").import_csv(source)
