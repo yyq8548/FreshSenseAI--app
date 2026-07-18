@@ -2,7 +2,7 @@
 
 ## Model details
 
-- Application release: FreshSense 0.5.0 Public Beta
+- Application release: FreshSense 0.5.1 Public Beta
 - Task: six-class visible fruit freshness classification
 - Supported fruit identities: apple, banana, orange
 - Output order: `freshapples`, `freshbanana`, `freshoranges`, `rottenapples`, `rottenbanana`, `rottenoranges`

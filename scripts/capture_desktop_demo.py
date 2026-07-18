@@ -23,6 +23,12 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--image", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument(
+        "--view",
+        choices=("overview", "scanner"),
+        default="scanner",
+        help="Capture the editorial overview or the analyzed scanner section.",
+    )
     parser.add_argument("--timeout-seconds", type=int, default=90)
     args = parser.parse_args()
 
@@ -52,6 +58,13 @@ def main() -> int:
             window.analyze()
             analysis_started = True
         elif analysis_started and window.last_state is not None:
+            if args.view == "overview":
+                window.page_scroll.verticalScrollBar().setValue(0)
+            else:
+                scanner_top = window.scanner_section.mapTo(
+                    window.page_scroll.widget(), window.scanner_section.rect().topLeft()
+                ).y()
+                window.page_scroll.verticalScrollBar().setValue(max(0, scanner_top - 160))
             app.processEvents()
             if not window.grab().save(str(output_path), "PNG"):
                 raise RuntimeError(f"Could not save demo screenshot: {output_path}")

@@ -74,7 +74,7 @@ def build_video(hero: Path, desktop: Path, output: Path) -> None:
         scenes: list[tuple[Image.Image, float]] = [
             (
                 _title_card(
-                    "FreshSense AI 0.5",
+                    "FreshSense AI 0.5.1",
                     "A downloadable Windows public beta\nfor visible fruit-freshness guidance",
                 ),
                 5,

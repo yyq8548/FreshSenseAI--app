@@ -5,21 +5,21 @@ visible freshness patterns in apples, bananas, and oranges. It combines a
 DenseNet201 image classifier, supported-input and confidence gates, Grad-CAM,
 local semantic RAG, optional GPT-5 reasoning, and reviewed fallback guidance.
 
-[![Download FreshSense AI for Windows](https://img.shields.io/badge/Download-Windows%20Public%20Beta-294D31?style=for-the-badge&logo=windows)](https://github.com/yyq8548/FreshSenseAI--app/releases/download/v0.5.0/FreshSenseAI-Setup-0.5.0.exe)
+[![Download FreshSense AI for Windows](https://img.shields.io/badge/Download-Windows%20Public%20Beta-294D31?style=for-the-badge&logo=windows)](https://github.com/yyq8548/FreshSenseAI--app/releases/download/v0.5.1/FreshSenseAI-Setup-0.5.1.exe)
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-2.19-orange)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.139-009688)
-![Tests](https://img.shields.io/badge/tests-125%2B%20automated-brightgreen)
-![Release](https://img.shields.io/badge/release-0.5.0%20Public%20Beta-blueviolet)
+![Tests](https://img.shields.io/badge/tests-129%20automated-brightgreen)
+![Release](https://img.shields.io/badge/release-0.5.1%20Public%20Beta-blueviolet)
 
-![FreshSense AI desktop result](docs/images/freshsense-desktop-demo.png)
+![FreshSense AI redesigned Windows application](docs/images/freshsense-desktop-overview.png)
 
 [Watch the 30-second beta walkthrough](docs/demo/freshsense-public-beta-demo.mp4)
 
 ## Try it in three steps
 
-1. Download `FreshSenseAI-Setup-0.5.0.exe` from the latest GitHub Release and
+1. Download `FreshSenseAI-Setup-0.5.1.exe` from the latest GitHub Release and
    compare its SHA-256 with the published checksum.
 2. Install and choose one clear photo containing an apple, banana, or orange.
 3. Select **Analyze freshness**, then review the result, risk guidance, storage
@@ -421,7 +421,7 @@ fruit-specific rewrites when the catalog and model remain consistent.
 ## Documentation
 
 - [Windows release guide](docs/WINDOWS_RELEASE.md)
-- [FreshSense 0.5 Public Beta release notes](docs/releases/0.5.0.md)
+- [FreshSense 0.5.1 Public Beta release notes](docs/releases/0.5.1.md)
 - [Public Beta pilot and retest plan](docs/PUBLIC_BETA_PILOT.md)
 - [Orange reliability plan](docs/ORANGE_RELIABILITY_PLAN.md)
 - [DenseNet201 model card](docs/MODEL_CARD.md)
