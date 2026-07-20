@@ -7,6 +7,10 @@ import type {
   DailyQualityReport,
   Inspection,
   InspectionList,
+  ManagerChatReply,
+  ManagerConversation,
+  ManagerConversationSummary,
+  ManagerPreference,
   NotificationItem,
   ReviewedOutcome,
   ReviewStatus,
@@ -136,7 +140,56 @@ export class FreshSenseApi {
     });
   }
 
-  private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  managerPreferences() {
+    return this.request<ManagerPreference>("/api/v1/manager/preferences");
+  }
+
+  updateManagerPreferences(input: Partial<Omit<ManagerPreference, "updated_at_utc">>) {
+    return this.request<ManagerPreference>("/api/v1/manager/preferences", {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    });
+  }
+
+  managerConversations() {
+    return this.request<{ conversations: ManagerConversationSummary[]; count: number }>(
+      "/api/v1/manager/conversations?limit=50",
+    );
+  }
+
+  createManagerConversation(title = "New conversation") {
+    return this.request<ManagerConversation>("/api/v1/manager/conversations", {
+      method: "POST",
+      body: JSON.stringify({ title }),
+    });
+  }
+
+  managerConversation(conversationId: string) {
+    return this.request<ManagerConversation>(
+      `/api/v1/manager/conversations/${encodeURIComponent(conversationId)}`,
+    );
+  }
+
+  sendManagerMessage(conversationId: string, content: string) {
+    return this.request<ManagerChatReply>(
+      `/api/v1/manager/conversations/${encodeURIComponent(conversationId)}/messages`,
+      { method: "POST", body: JSON.stringify({ content }) },
+      60_000,
+    );
+  }
+
+  archiveManagerConversation(conversationId: string) {
+    return this.request<ManagerConversation>(
+      `/api/v1/manager/conversations/${encodeURIComponent(conversationId)}/archive`,
+      { method: "POST" },
+    );
+  }
+
+  private async request<T>(
+    path: string,
+    init: RequestInit = {},
+    timeoutMs = 30_000,
+  ): Promise<T> {
     const token = await this.getToken();
     const headers = new Headers(init.headers);
     headers.set("Authorization", `Bearer ${token}`);
@@ -144,7 +197,7 @@ export class FreshSenseApi {
       headers.set("Content-Type", "application/json");
     }
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 30_000);
+    const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
     let response: Response;
     try {
       response = await fetch(`${this.config.apiBaseUrl}${path}`, {
@@ -155,7 +208,7 @@ export class FreshSenseApi {
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         throw new FreshSenseApiError(
-          "FreshSense did not respond within 30 seconds. Please retry once.",
+          `FreshSense did not respond within ${Math.round(timeoutMs / 1000)} seconds. Please retry once.`,
           0,
           "REQUEST_TIMEOUT",
         );

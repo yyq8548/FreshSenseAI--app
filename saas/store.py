@@ -24,7 +24,7 @@ from saas.database import (
 )
 
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 REVIEW_STATUSES = frozenset({"pending", "confirmed", "corrected", "dismissed"})
 REVIEWED_OUTCOMES = frozenset({"fresh", "rotten", "unsupported", "uncertain"})
 WORKSPACE_ROLES = frozenset({"manager", "inspector", "reviewer"})
@@ -48,6 +48,11 @@ APPROVAL_STATUSES = frozenset({"pending", "approved", "rejected"})
 ACTION_EXECUTION_STATUSES = frozenset(
     {"pending", "shadow_only", "executed", "awaiting_approval", "blocked", "failed"}
 )
+CONVERSATION_STATUSES = frozenset({"active", "archived"})
+CHAT_MESSAGE_ROLES = frozenset({"user", "assistant"})
+ASSISTANT_LANGUAGES = frozenset({"auto", "en", "zh"})
+ASSISTANT_RESPONSE_DETAILS = frozenset({"concise", "standard", "detailed"})
+ASSISTANT_REVIEW_FOCUSES = frozenset({"balanced", "freshness_risk", "operations"})
 
 
 class SaaSStoreError(RuntimeError):
@@ -60,6 +65,10 @@ class InspectionNotFoundError(SaaSStoreError):
 
 class AgentRunNotFoundError(SaaSStoreError):
     """Raised when an agent run is absent from the authenticated workspace."""
+
+
+class ConversationNotFoundError(SaaSStoreError):
+    """Raised when a manager conversation is absent from the workspace."""
 
 
 class SaaSStore:
@@ -291,6 +300,43 @@ class SaaSStore:
                         FOREIGN KEY(inspection_id) REFERENCES inspections(inspection_id)
                     );
 
+                    CREATE TABLE IF NOT EXISTS manager_conversations (
+                        conversation_id TEXT PRIMARY KEY,
+                        workspace_id TEXT NOT NULL,
+                        created_by_identity_hash TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        created_at_utc TEXT NOT NULL,
+                        updated_at_utc TEXT NOT NULL,
+                        FOREIGN KEY(workspace_id) REFERENCES workspaces(workspace_id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS manager_messages (
+                        message_id TEXT PRIMARY KEY,
+                        conversation_id TEXT NOT NULL,
+                        workspace_id TEXT NOT NULL,
+                        role TEXT NOT NULL,
+                        content TEXT NOT NULL,
+                        citations_json TEXT NOT NULL,
+                        metadata_json TEXT NOT NULL,
+                        created_at_utc TEXT NOT NULL,
+                        FOREIGN KEY(conversation_id) REFERENCES manager_conversations(conversation_id),
+                        FOREIGN KEY(workspace_id) REFERENCES workspaces(workspace_id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS manager_preferences (
+                        workspace_id TEXT NOT NULL,
+                        identity_hash TEXT NOT NULL,
+                        preferred_language TEXT NOT NULL,
+                        response_detail TEXT NOT NULL,
+                        default_location_name TEXT NOT NULL,
+                        review_focus TEXT NOT NULL,
+                        custom_instructions TEXT NOT NULL,
+                        updated_at_utc TEXT NOT NULL,
+                        PRIMARY KEY(workspace_id, identity_hash),
+                        FOREIGN KEY(workspace_id) REFERENCES workspaces(workspace_id)
+                    );
+
                     CREATE INDEX IF NOT EXISTS idx_inspections_workspace_created
                         ON inspections(workspace_id, created_at_utc DESC);
                     CREATE INDEX IF NOT EXISTS idx_inspections_workspace_review
@@ -315,6 +361,10 @@ class SaaSStore:
                         ON approval_requests(workspace_id, status, requested_at_utc DESC);
                     CREATE INDEX IF NOT EXISTS idx_agent_memory_workspace_created
                         ON agent_memory(workspace_id, created_at_utc DESC);
+                    CREATE INDEX IF NOT EXISTS idx_manager_conversations_workspace_updated
+                        ON manager_conversations(workspace_id, updated_at_utc DESC);
+                    CREATE INDEX IF NOT EXISTS idx_manager_messages_conversation_created
+                        ON manager_messages(conversation_id, created_at_utc, message_id);
                         """
                     )
                     row = connection.execute(
@@ -329,7 +379,7 @@ class SaaSStore:
                             """,
                             (str(SCHEMA_VERSION),),
                         )
-                    elif int(row["value"]) in {1, 2, 3}:
+                    elif int(row["value"]) in {1, 2, 3, 4}:
                         connection.execute(
                             "UPDATE saas_metadata SET value = ? WHERE key = 'schema_version'",
                             (str(SCHEMA_VERSION),),
@@ -1543,6 +1593,312 @@ class SaaSStore:
             records.append(value)
         return records
 
+    def manager_preferences(self, identity_hash: str) -> dict[str, Any]:
+        """Return durable, per-manager response preferences for this workspace."""
+
+        workspace_id = self._workspace_id(identity_hash)
+        now = _utc_now()
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO manager_preferences(
+                    workspace_id, identity_hash, preferred_language,
+                    response_detail, default_location_name, review_focus,
+                    custom_instructions, updated_at_utc
+                ) VALUES (?, ?, 'auto', 'standard', '', 'balanced', '', ?)
+                ON CONFLICT DO NOTHING
+                """,
+                (workspace_id, identity_hash, now),
+            )
+            row = connection.execute(
+                """
+                SELECT preferred_language, response_detail, default_location_name,
+                       review_focus, custom_instructions, updated_at_utc
+                FROM manager_preferences
+                WHERE workspace_id = ? AND identity_hash = ?
+                """,
+                (workspace_id, identity_hash),
+            ).fetchone()
+        if row is None:
+            raise SaaSStoreError("Manager preferences could not be loaded.")
+        return dict(row)
+
+    def update_manager_preferences(
+        self,
+        *,
+        identity_hash: str,
+        preferred_language: str | None = None,
+        response_detail: str | None = None,
+        default_location_name: str | None = None,
+        review_focus: str | None = None,
+        custom_instructions: str | None = None,
+    ) -> dict[str, Any]:
+        current = self.manager_preferences(identity_hash)
+        language = preferred_language or str(current["preferred_language"])
+        detail = response_detail or str(current["response_detail"])
+        focus = review_focus or str(current["review_focus"])
+        location = (
+            str(current["default_location_name"])
+            if default_location_name is None
+            else _bounded_optional(default_location_name, "default_location_name", 80)
+        )
+        instructions = (
+            str(current["custom_instructions"])
+            if custom_instructions is None
+            else _bounded_optional(custom_instructions, "custom_instructions", 600)
+        )
+        if language not in ASSISTANT_LANGUAGES:
+            raise SaaSStoreError("preferred_language is invalid.")
+        if detail not in ASSISTANT_RESPONSE_DETAILS:
+            raise SaaSStoreError("response_detail is invalid.")
+        if focus not in ASSISTANT_REVIEW_FOCUSES:
+            raise SaaSStoreError("review_focus is invalid.")
+
+        workspace_id = self._workspace_id(identity_hash)
+        if location:
+            with self._connect() as connection:
+                found = connection.execute(
+                    "SELECT 1 FROM locations WHERE workspace_id = ? AND name = ?",
+                    (workspace_id, location),
+                ).fetchone()
+            if found is None:
+                raise SaaSStoreError("default_location_name is not in this workspace.")
+
+        with self._connect() as connection:
+            connection.execute(
+                """
+                UPDATE manager_preferences
+                SET preferred_language = ?, response_detail = ?,
+                    default_location_name = ?, review_focus = ?,
+                    custom_instructions = ?, updated_at_utc = ?
+                WHERE workspace_id = ? AND identity_hash = ?
+                """,
+                (
+                    language,
+                    detail,
+                    location,
+                    focus,
+                    instructions,
+                    _utc_now(),
+                    workspace_id,
+                    identity_hash,
+                ),
+            )
+        return self.manager_preferences(identity_hash)
+
+    def create_manager_conversation(
+        self,
+        *,
+        identity_hash: str,
+        title: str = "New conversation",
+    ) -> dict[str, Any]:
+        workspace_id = self._workspace_id(identity_hash)
+        conversation_id = str(uuid4())
+        now = _utc_now()
+        normalized_title = _bounded_required(title, "title", 120)
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO manager_conversations(
+                    conversation_id, workspace_id, created_by_identity_hash,
+                    title, status, created_at_utc, updated_at_utc
+                ) VALUES (?, ?, ?, ?, 'active', ?, ?)
+                """,
+                (
+                    conversation_id,
+                    workspace_id,
+                    identity_hash,
+                    normalized_title,
+                    now,
+                    now,
+                ),
+            )
+        return self.manager_conversation(identity_hash, conversation_id)
+
+    def list_manager_conversations(
+        self,
+        identity_hash: str,
+        *,
+        limit: int = 30,
+        status: str = "active",
+    ) -> list[dict[str, Any]]:
+        if status not in CONVERSATION_STATUSES:
+            raise SaaSStoreError("Conversation status is invalid.")
+        if not 1 <= limit <= 100:
+            raise SaaSStoreError("limit must be between 1 and 100.")
+        workspace_id = self._workspace_id(identity_hash)
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT c.conversation_id, c.title, c.status, c.created_at_utc,
+                       c.updated_at_utc,
+                       (SELECT COUNT(*) FROM manager_messages m
+                        WHERE m.conversation_id = c.conversation_id) AS message_count,
+                       (SELECT m.content FROM manager_messages m
+                        WHERE m.conversation_id = c.conversation_id
+                        ORDER BY m.created_at_utc DESC, m.message_id DESC LIMIT 1)
+                        AS last_message
+                FROM manager_conversations c
+                WHERE c.workspace_id = ? AND c.created_by_identity_hash = ?
+                  AND c.status = ?
+                ORDER BY c.updated_at_utc DESC, c.conversation_id DESC
+                LIMIT ?
+                """,
+                (workspace_id, identity_hash, status, limit),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def manager_conversation(
+        self,
+        identity_hash: str,
+        conversation_id: str,
+    ) -> dict[str, Any]:
+        workspace_id = self._workspace_id(identity_hash)
+        conversation_id = _bounded_required(conversation_id, "conversation_id", 64)
+        with self._connect() as connection:
+            conversation = connection.execute(
+                """
+                SELECT conversation_id, title, status, created_at_utc, updated_at_utc
+                FROM manager_conversations
+                WHERE workspace_id = ? AND created_by_identity_hash = ?
+                  AND conversation_id = ?
+                """,
+                (workspace_id, identity_hash, conversation_id),
+            ).fetchone()
+            if conversation is None:
+                raise ConversationNotFoundError(
+                    "Conversation not found in this workspace."
+                )
+            messages = connection.execute(
+                """
+                SELECT message_id, conversation_id, role, content,
+                       citations_json, metadata_json, created_at_utc
+                FROM manager_messages
+                WHERE workspace_id = ? AND conversation_id = ?
+                ORDER BY created_at_utc, message_id
+                """,
+                (workspace_id, conversation_id),
+            ).fetchall()
+        return {
+            **dict(conversation),
+            "messages": [_manager_message_record(row) for row in messages],
+        }
+
+    def add_manager_message(
+        self,
+        *,
+        identity_hash: str,
+        conversation_id: str,
+        role: str,
+        content: str,
+        citations: list[Mapping[str, Any]] | None = None,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        if role not in CHAT_MESSAGE_ROLES:
+            raise SaaSStoreError("Chat message role is invalid.")
+        maximum = 4_000 if role == "user" else 10_000
+        normalized_content = _bounded_required(content, "content", maximum)
+        workspace_id = self._workspace_id(identity_hash)
+        conversation_id = _bounded_required(conversation_id, "conversation_id", 64)
+        now = _utc_now()
+        message_id = str(uuid4())
+        citation_values = list(citations or [])
+        metadata_value = dict(metadata or {})
+        citations_json = _bounded_json_value(
+            citation_values,
+            "citations",
+            100_000,
+        )
+        metadata_json = _bounded_json_value(
+            metadata_value,
+            "message_metadata",
+            100_000,
+        )
+        with self._connect() as connection:
+            conversation = connection.execute(
+                """
+                SELECT title FROM manager_conversations
+                WHERE workspace_id = ? AND created_by_identity_hash = ?
+                  AND conversation_id = ? AND status = 'active'
+                """,
+                (workspace_id, identity_hash, conversation_id),
+            ).fetchone()
+            if conversation is None:
+                raise ConversationNotFoundError(
+                    "Conversation not found in this workspace."
+                )
+            existing_count = connection.execute(
+                "SELECT COUNT(*) AS count FROM manager_messages WHERE conversation_id = ?",
+                (conversation_id,),
+            ).fetchone()
+            connection.execute(
+                """
+                INSERT INTO manager_messages(
+                    message_id, conversation_id, workspace_id, role, content,
+                    citations_json, metadata_json, created_at_utc
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    message_id,
+                    conversation_id,
+                    workspace_id,
+                    role,
+                    normalized_content,
+                    citations_json,
+                    metadata_json,
+                    now,
+                ),
+            )
+            title = str(conversation["title"])
+            if (
+                role == "user"
+                and title == "New conversation"
+                and int(existing_count["count"] if existing_count else 0) == 0
+            ):
+                title = _chat_title(normalized_content)
+            connection.execute(
+                """
+                UPDATE manager_conversations
+                SET title = ?, updated_at_utc = ?
+                WHERE workspace_id = ? AND conversation_id = ?
+                """,
+                (title, now, workspace_id, conversation_id),
+            )
+            row = connection.execute(
+                """
+                SELECT message_id, conversation_id, role, content,
+                       citations_json, metadata_json, created_at_utc
+                FROM manager_messages WHERE message_id = ?
+                """,
+                (message_id,),
+            ).fetchone()
+        if row is None:
+            raise SaaSStoreError("The chat message could not be stored.")
+        return _manager_message_record(row)
+
+    def archive_manager_conversation(
+        self,
+        *,
+        identity_hash: str,
+        conversation_id: str,
+    ) -> dict[str, Any]:
+        workspace_id = self._workspace_id(identity_hash)
+        with self._connect() as connection:
+            changed = connection.execute(
+                """
+                UPDATE manager_conversations
+                SET status = 'archived', updated_at_utc = ?
+                WHERE workspace_id = ? AND created_by_identity_hash = ?
+                  AND conversation_id = ? AND status = 'active'
+                """,
+                (_utc_now(), workspace_id, identity_hash, conversation_id),
+            )
+        if changed.rowcount != 1:
+            raise ConversationNotFoundError(
+                "Conversation not found in this workspace."
+            )
+        return self.manager_conversation(identity_hash, conversation_id)
+
     def daily_report(self, identity_hash: str, report_date: str) -> dict[str, Any]:
         try:
             day = datetime.strptime(report_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
@@ -1916,6 +2272,13 @@ def _action_proposal_record(row: Mapping[str, Any]) -> dict[str, Any]:
     return value
 
 
+def _manager_message_record(row: Mapping[str, Any]) -> dict[str, Any]:
+    value = dict(row)
+    value["citations"] = json.loads(value.pop("citations_json"))
+    value["metadata"] = json.loads(value.pop("metadata_json"))
+    return value
+
+
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -1944,6 +2307,21 @@ def _bounded_json(value: Mapping[str, Any], name: str, maximum: int) -> str:
     if len(serialized.encode("utf-8")) > maximum:
         raise SaaSStoreError(f"{name} exceeds {maximum} bytes.")
     return serialized
+
+
+def _bounded_json_value(value: Any, name: str, maximum: int) -> str:
+    try:
+        serialized = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+    except (TypeError, ValueError) as exc:
+        raise SaaSStoreError(f"{name} must be JSON serializable.") from exc
+    if len(serialized.encode("utf-8")) > maximum:
+        raise SaaSStoreError(f"{name} exceeds {maximum} bytes.")
+    return serialized
+
+
+def _chat_title(content: str) -> str:
+    compact = " ".join(content.split())
+    return compact if len(compact) <= 72 else compact[:69].rstrip() + "..."
 
 
 def _optional_profile_value(value: str | None, maximum: int) -> str | None:

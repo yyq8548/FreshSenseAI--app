@@ -1,4 +1,9 @@
+from pathlib import Path
+
 from deployment.azure.staging import validate_staging_configuration
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def _valid_config():
@@ -45,3 +50,12 @@ def test_staging_configuration_rejects_local_sqlite_and_insecure_origins():
         "postgresql_tls",
         "runtime_bundle_checksum",
     }.issubset(set(report["failed_checks"]))
+
+
+def test_linux_startup_script_is_forced_to_lf_line_endings():
+    attributes = (ROOT / ".gitattributes").read_text(encoding="utf-8")
+    startup = (ROOT / "deployment" / "azure" / "startup.sh").read_bytes()
+
+    assert "*.sh text eol=lf" in attributes
+    assert startup.startswith(b"#!/usr/bin/env bash\n")
+    assert b"\r\n" not in startup

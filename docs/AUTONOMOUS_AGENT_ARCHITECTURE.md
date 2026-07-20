@@ -70,9 +70,10 @@ task so the physical action stays visible and controlled.
 
 ## Persistence and API
 
-Schema version 4 stores agent runs, steps, proposals, workflow tasks,
-notifications, approval requests, and human-review memory. Uploaded image bytes
-are not added to agent storage.
+Schema version 5 stores agent runs, steps, proposals, workflow tasks,
+notifications, approval requests, human-review memory, Manager Chat text,
+grounding citations, and per-manager preferences. Uploaded image bytes are not
+added to agent or conversation storage.
 
 The REST API exposes:
 
@@ -84,6 +85,8 @@ The REST API exposes:
 - `GET/PATCH /api/v1/approvals` for manager decisions;
 - `GET /api/v1/agent/memory` for durable review outcomes;
 - `GET /api/v1/reports/daily` for daily quality summaries.
+- `/api/v1/manager/*` for manager-only, grounded multi-turn questions about the
+  workspace audit trail.
 
 Managers and inspectors can start runs. Managers, inspectors, and reviewers can
 read the workspace audit trail. Existing Entra/API-key authentication and

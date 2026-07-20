@@ -179,6 +179,19 @@ def test_entra_workspace_invitations_enforce_manager_inspector_reviewer_roles(
                 "note": "Manual check agreed.",
             },
         )
+        manager_chat = client.post(
+            "/api/v1/manager/conversations",
+            headers=manager,
+            json={"title": "Manager-only operations"},
+        )
+        inspector_chat = client.get(
+            "/api/v1/manager/preferences",
+            headers=inspector,
+        )
+        reviewer_chat = client.get(
+            "/api/v1/manager/conversations",
+            headers=reviewer,
+        )
 
     assert manager_me.status_code == 200
     assert manager_me.json()["workspace_role"] == "manager"
@@ -191,3 +204,6 @@ def test_entra_workspace_invitations_enforce_manager_inspector_reviewer_roles(
     assert reviewer_analysis.status_code == 403
     assert reviewer_direct_analysis.status_code == 403
     assert reviewer_review.status_code == 200
+    assert manager_chat.status_code == 200
+    assert inspector_chat.status_code == 403
+    assert reviewer_chat.status_code == 403

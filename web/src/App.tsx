@@ -43,6 +43,7 @@ import {
   Alert24Regular,
   ArrowUpload24Regular,
   Camera24Regular,
+  Chat24Regular,
   CheckmarkCircle24Regular,
   ClipboardTaskListLtr24Regular,
   DocumentBulletList24Regular,
@@ -54,6 +55,7 @@ import {
 } from "@fluentui/react-icons";
 
 import { FreshSenseApi } from "./api";
+import { ManagerChat } from "./ManagerChat";
 import { analysisProgressMessage } from "./analysis-progress";
 import { prepareAnalysisImage } from "./prepare-analysis-image";
 import type { RuntimeConfig } from "./config";
@@ -72,7 +74,7 @@ import type {
   WorkflowTask,
 } from "./types";
 
-type View = "overview" | "inspect" | "reviews" | "activity" | "reports" | "team";
+type View = "overview" | "inspect" | "reviews" | "activity" | "chat" | "reports" | "team";
 const invitationAcceptances = new Map<string, Promise<Workspace>>();
 
 const useStyles = makeStyles({
@@ -374,6 +376,7 @@ function Workbench({ config }: { config: RuntimeConfig }) {
     { id: "inspect", label: "New inspection", icon: <Camera24Regular />, roles: ["manager", "inspector"] },
     { id: "reviews", label: "Review queue", icon: <ClipboardTaskListLtr24Regular />, roles: ["manager", "reviewer"] },
     { id: "activity", label: "Agent activity", icon: <Alert24Regular /> },
+    { id: "chat", label: "Manager Chat", icon: <Chat24Regular />, roles: ["manager"] },
     { id: "reports", label: "Daily report", icon: <DocumentBulletList24Regular />, roles: ["manager", "reviewer"] },
     { id: "team", label: "Team", icon: <PeopleTeam24Regular />, roles: ["manager"] },
   ];
@@ -420,6 +423,7 @@ function Workbench({ config }: { config: RuntimeConfig }) {
           {view === "inspect" ? <InspectionForm api={api} onComplete={async () => { await refresh(); setView("overview"); }} /> : null}
           {view === "reviews" ? <ReviewQueue api={api} inspections={inspections} onChanged={refresh} /> : null}
           {view === "activity" ? <AgentActivity api={api} tasks={tasks} notifications={notifications} approvals={approvals} onChanged={refresh} /> : null}
+          {view === "chat" && workspace ? <ManagerChat api={api} workspace={workspace} /> : null}
           {view === "reports" && dailyReport ? <DailyReport report={dailyReport} /> : null}
           {view === "team" && workspace ? <TeamPage api={api} workspace={workspace} /> : null}
         </div>

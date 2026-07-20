@@ -24,6 +24,9 @@ MIGRATION_TABLES: tuple[str, ...] = (
     "notifications",
     "approval_requests",
     "agent_memory",
+    "manager_conversations",
+    "manager_messages",
+    "manager_preferences",
 )
 
 

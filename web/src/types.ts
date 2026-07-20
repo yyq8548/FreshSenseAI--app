@@ -151,3 +151,47 @@ export type WorkspaceInvitation = {
   expires_at_utc: string;
   invitation_token: string;
 };
+
+export type ManagerPreference = {
+  preferred_language: "auto" | "en" | "zh";
+  response_detail: "concise" | "standard" | "detailed";
+  default_location_name: string;
+  review_focus: "balanced" | "freshness_risk" | "operations";
+  custom_instructions: string;
+  updated_at_utc: string;
+};
+
+export type ManagerChatCitation = {
+  source_type: "inspection" | "agent_run" | "knowledge";
+  source_id: string;
+  label: string;
+};
+
+export type ManagerChatMessage = {
+  message_id: string;
+  conversation_id: string;
+  role: "user" | "assistant";
+  content: string;
+  citations: ManagerChatCitation[];
+  metadata: Record<string, unknown>;
+  created_at_utc: string;
+};
+
+export type ManagerConversation = {
+  conversation_id: string;
+  title: string;
+  status: "active" | "archived";
+  created_at_utc: string;
+  updated_at_utc: string;
+  messages: ManagerChatMessage[];
+};
+
+export type ManagerConversationSummary = Omit<ManagerConversation, "messages"> & {
+  message_count: number;
+  last_message: string | null;
+};
+
+export type ManagerChatReply = {
+  conversation: ManagerConversation;
+  assistant_message: ManagerChatMessage;
+};

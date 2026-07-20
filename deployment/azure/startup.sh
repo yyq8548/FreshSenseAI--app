@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Linux App Service requires LF line endings; .gitattributes enforces them.
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

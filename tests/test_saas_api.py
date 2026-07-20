@@ -9,12 +9,30 @@ from tests.test_api import _FakeAgent, _image_bytes, _upload
 API_KEY = "saas-test-key-with-at-least-32-characters"
 
 
+class _ManagerChatResponder:
+    model = "test-manager-chat"
+
+    def generate(self, *, system_prompt, payload):
+        assert payload["workspace_evidence"]["inspections"]
+        return "The latest batch was grounded in the recorded inspection. [Inspection PO-42]"
+
+
 def _app(tmp_path):
     return create_app(
         agent_factory=lambda: _FakeAgent(),
         api_key=API_KEY,
         api_key_file=None,
         saas_database_path=tmp_path / "saas.db",
+    )
+
+
+def _chat_app(tmp_path):
+    return create_app(
+        agent_factory=lambda: _FakeAgent(),
+        api_key=API_KEY,
+        api_key_file=None,
+        saas_database_path=tmp_path / "saas-chat.db",
+        manager_chat_responder=_ManagerChatResponder(),
     )
 
 
@@ -127,8 +145,59 @@ def test_openapi_documents_workspace_inspection_and_review_contracts(tmp_path):
     assert "/api/v1/notifications" in schema["paths"]
     assert "/api/v1/approvals" in schema["paths"]
     assert "/api/v1/reports/daily" in schema["paths"]
+    assert "/api/v1/manager/preferences" in schema["paths"]
+    assert "/api/v1/manager/conversations" in schema["paths"]
+    assert "/api/v1/manager/conversations/{conversation_id}/messages" in schema["paths"]
     create_operation = schema["paths"]["/api/v1/inspections/analyze"]["post"]
     assert "multipart/form-data" in create_operation["requestBody"]["content"]
+
+
+def test_manager_chat_api_supports_preferences_and_multi_turn_history(tmp_path):
+    app = _chat_app(tmp_path)
+    headers = {"X-API-Key": API_KEY}
+    with TestClient(app) as client:
+        client.post(
+            "/api/v1/inspections/analyze",
+            headers=headers,
+            data={"batch_reference": "PO-42", "location_name": "Main store"},
+            files=_upload(_image_bytes()),
+        )
+        preferences = client.patch(
+            "/api/v1/manager/preferences",
+            headers=headers,
+            json={
+                "preferred_language": "en",
+                "response_detail": "concise",
+                "default_location_name": "Main store",
+                "review_focus": "operations",
+                "custom_instructions": "Lead with open tasks.",
+            },
+        )
+        created = client.post(
+            "/api/v1/manager/conversations",
+            headers=headers,
+            json={"title": "Receiving questions"},
+        )
+        conversation_id = created.json()["conversation_id"]
+        first = client.post(
+            f"/api/v1/manager/conversations/{conversation_id}/messages",
+            headers=headers,
+            json={"content": "Explain batch PO-42"},
+        )
+        second = client.post(
+            f"/api/v1/manager/conversations/{conversation_id}/messages",
+            headers=headers,
+            json={"content": "What did I ask before?"},
+        )
+        listed = client.get("/api/v1/manager/conversations", headers=headers)
+
+    assert preferences.status_code == 200
+    assert preferences.json()["review_focus"] == "operations"
+    assert created.status_code == 200
+    assert first.status_code == 200
+    assert first.json()["assistant_message"]["metadata"]["source"] == "openai_rag"
+    assert len(second.json()["conversation"]["messages"]) == 4
+    assert listed.json()["conversations"][0]["message_count"] == 4
 
 
 def test_shadow_agent_api_records_an_audited_proposal(tmp_path):
