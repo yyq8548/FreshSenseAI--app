@@ -1,7 +1,7 @@
 # FreshSense public demo page design
 
 **Date:** 2026-07-20  
-**Status:** Approved concept; awaiting written-spec review  
+**Status:** Approved
 **Audience:** Recruiters, AI Engineer interviewers, prospective pilot users
 
 ## Goal
