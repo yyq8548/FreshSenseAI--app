@@ -3,20 +3,20 @@
 FreshSense is a browser-based fruit inspection workbench for small grocery
 stores and produce teams. Staff can check an incoming delivery or shelf batch
 with one or a batch of representative fruit photos, record where the check happened, and send
-the result to a teammate for review. The current beta supports apples, bananas,
-and oranges.
+the result to a teammate for review. The current development model supports apples,
+bananas, oranges, mangoes, tomatoes, and pears.
 
 [Product overview](#product-overview) | [How to use FreshSense](#how-to-use-freshsense) | [Technology and AI](#technology-and-ai)
 
 **Live beta:** [freshsenseai.com](https://freshsenseai.com/)
 
-[![Download FreshSense AI for Windows](https://img.shields.io/badge/Download-Windows%20Public%20Beta-294D31?style=for-the-badge&logo=windows)](https://github.com/yyq8548/FreshSenseAI--app/releases/download/v0.5.1/FreshSenseAI-Setup-0.5.1.exe)
+[![Download FreshSense AI for Windows](https://img.shields.io/badge/Download-Windows%20Public%20Beta-294D31?style=for-the-badge&logo=windows)](https://github.com/yyq8548/FreshSenseAI--app/releases/download/v0.6.0/FreshSenseAI-Setup-0.6.0.exe)
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-2.19-orange)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.139-009688)
-![Tests](https://img.shields.io/badge/tests-175%20automated-brightgreen)
-![Release](https://img.shields.io/badge/release-0.5.1%20Public%20Beta-blueviolet)
+![Tests](https://img.shields.io/badge/tests-178%20automated-brightgreen)
+![Release](https://img.shields.io/badge/release-0.6.0%20Public%20Beta-blueviolet)
 
 ## Product overview
 
@@ -70,8 +70,9 @@ Service, Microsoft Entra External ID handles customer authentication, and
 PostgreSQL stores workspace metadata and review records. The API checks tenant,
 audience, scope, workspace, and role before it accepts a request.
 
-The vision model is a TensorFlow DenseNet201 classifier trained on six classes:
-fresh and rotten apples, bananas, and oranges. A supported-input gate checks
+The vision model is an ImageNet-pretrained TensorFlow DenseNet201 classifier
+trained on 12 classes: fresh and rotten apples, bananas, oranges, mangoes,
+tomatoes, and pears. A supported-input gate checks
 whether the photo clearly resembles one supported fruit before the application
 shows a freshness label. Image-quality checks and confidence thresholds can
 return unsupported, uncertain, or retake guidance instead of forcing a result.
@@ -96,9 +97,13 @@ That measurement is a development check, not a production latency guarantee.
 
 ## Windows desktop beta
 
-1. Download `FreshSenseAI-Setup-0.5.1.exe` from the latest GitHub Release and
+The 0.6.0 installer includes the six-fruit model, supported-input gate, local
+knowledge, and cryptographic artifact manifest described in the model card.
+
+1. Download `FreshSenseAI-Setup-0.6.0.exe` from the latest GitHub Release and
    compare its SHA-256 with the published checksum.
-2. Install and choose one clear photo containing an apple, banana, or orange.
+2. Install and choose one clear photo containing an apple, banana, orange,
+   mango, tomato, or pear.
 3. Select **Analyze freshness**, then review the result, risk guidance, storage
    advice, safety warning, and optional model-influence view.
 
@@ -112,7 +117,7 @@ for the packaged Windows beta.
 
 ## Supported input
 
-- One clear apple, banana, or orange fruit type per image.
+- One clear apple, banana, orange, mango, tomato, or pear type per image.
 - JPEG, PNG, or WebP for the Streamlit interface; JPEG or PNG for desktop.
 - Close framing, useful lighting, and limited occlusion.
 
@@ -132,20 +137,22 @@ tentative freshness label.
 
 ## Current evidence limits
 
-The model's six-class confidence is not general certainty. The legacy dataset
-contains source-group leakage, so earlier 97 to 99 percent test results are not
-independent real-world accuracy. The frozen synthetic unsupported
-false-acceptance rate is 5.73 percent and does not replace testing with real
-unsupported photos. Earlier informal testing reportedly involved more than 50
-users and three orange errors, but case-level counts and post-change retesting
-are not complete. See the [model card](docs/MODEL_CARD.md) and
+The model's 12-class confidence is not general certainty. The expanded grouped
+development test reached 98.54% accuracy before withholding and 99.16%
+selective accuracy at 88.67% coverage, with 19 rotten-to-fresh errors among
+2,158 rotten test images after gating. These results are not independent store
+accuracy and synthetic unsupported testing does not replace real unsupported
+photos. Earlier informal testing reportedly involved more than 50 users and
+three orange errors, but case-level post-change retesting is not complete. See
+the [model card](docs/MODEL_CARD.md) and
 [public-beta pilot plan](docs/PUBLIC_BETA_PILOT.md).
 
 ## What FreshSense does
 
 FreshSense accepts a photo containing one supported fruit type and returns:
 
-- a fresh or rotten classification for apple, banana, or orange;
+- a fresh or rotten classification for apple, banana, orange, mango, tomato,
+  or pear;
 - model confidence when the result passes the safety gates;
 - an optional Grad-CAM influence overlay for accepted predictions;
 - image-quality and scene warnings;
@@ -253,7 +260,7 @@ enabled only after the model reports ready.
 
 | Feature | Status | Current behavior |
 | --- | --- | --- |
-| DenseNet201 computer vision | Implemented | Classifies fresh/rotten apple, banana, and orange labels from the configured model |
+| DenseNet201 computer vision | Implemented | Classifies 12 fresh/rotten labels for apple, banana, orange, mango, tomato, and pear |
 | Image-quality checks | Implemented | Detects dark, overexposed, and blurry images |
 | Scene analysis | Implemented | Flags empty-looking scenes, small foregrounds, and photos needing a closer crop |
 | Confidence safety gates | Implemented | Requires minimum confidence and class-margin thresholds |
@@ -314,27 +321,34 @@ safe, or modify an external inventory system. See the
 
 ## Supported inputs and limitations
 
-The configured catalog contains six model output classes:
+The configured catalog contains 12 model output classes:
 
 ```text
 freshapples
 freshbanana
 freshoranges
+freshmango
+freshtomato
+freshpear
 rottenapples
 rottenbanana
 rottenoranges
+rottenmango
+rottentomato
+rottenpear
 ```
 
-Use a clear JPEG, PNG, or WebP image containing one apple, banana, or orange
-fruit type. Mixed-fruit scenes, processed food, severe occlusion, and images far
-outside the training distribution are not reliable inputs.
+Use a clear JPEG, PNG, or WebP image containing one apple, banana, orange,
+mango, tomato, or pear type. Mixed-produce scenes, processed food, severe
+occlusion, and images far outside the training distribution are not reliable
+inputs.
 
-Softmax confidence covers only the six configured categories and is not treated
-as general certainty. FreshSense 0.5 retains a separate feature-space gate, but the
-frozen synthetic unsupported false-acceptance rate is still 5.73%. The legacy
-dataset audit also found 100% source-group overlap from legacy test into train,
-so earlier 97-99% results are not independent real-world accuracy. See the
-[model card](docs/MODEL_CARD.md) for the complete evidence and limitations.
+Softmax confidence covers only the 12 configured categories and is not treated
+as general certainty. The expanded model uses a model-bound feature-space gate;
+its grouped development report records 0/192 synthetic unsupported false
+acceptances and 99.16% selective accuracy at 88.67% coverage. These are not
+independent real-world accuracy claims. See the [model card](docs/MODEL_CARD.md)
+for complete per-class evidence and limitations.
 
 ## Run locally
 
@@ -587,6 +601,7 @@ fruit-specific rewrites when the catalog and model remain consistent.
 ## Documentation
 
 - [Windows release guide](docs/WINDOWS_RELEASE.md)
+- [FreshSense 0.6.0 Public Beta release notes](docs/releases/0.6.0.md)
 - [FreshSense 0.5.1 Public Beta release notes](docs/releases/0.5.1.md)
 - [Public Beta pilot and retest plan](docs/PUBLIC_BETA_PILOT.md)
 - [Orange reliability plan](docs/ORANGE_RELIABILITY_PLAN.md)

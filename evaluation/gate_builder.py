@@ -41,6 +41,7 @@ def build_open_set_gate(
         )
     manifest = load_manifest(manifest_path)
     records = manifest["records"]
+    dataset_name = str(manifest.get("dataset_name", "unspecified_dataset"))
     dataset_root = Path(dataset_root)
 
     from tensorflow.keras import Model
@@ -152,7 +153,7 @@ def build_open_set_gate(
         model_sha256=np.asarray([sha256_file(model_path)]),
         catalog_sha256=np.asarray([sha256_file(catalog_path)]),
         manifest_sha256=np.asarray([manifest_sha256(manifest_path)]),
-        calibration_source=np.asarray(["legacy_grouped_split_not_independent_of_existing_model"]),
+        calibration_source=np.asarray([f"{dataset_name}_grouped_validation"]),
         minimum_supported_coverage=np.asarray([minimum_supported_coverage], dtype=np.float32),
         minimum_final_supported_coverage=np.asarray(
             [minimum_final_supported_coverage], dtype=np.float32
@@ -194,9 +195,9 @@ def build_open_set_gate(
             "synthetic_ood": round(synthetic_seconds, 3),
         },
         "validity_warning": (
-            "The existing DenseNet model was trained with the legacy leaked split. "
-            "This gate is a safety baseline and must be recalibrated after group-wise model retraining "
-            "and independent real-world data collection."
+            f"This gate was calibrated on {dataset_name}, not an independently photographed "
+            "real-world store benchmark. Recalibrate it after representative unsupported-image "
+            "and store-pilot data are collected."
         ),
     }
     summary_output = Path(summary_path)

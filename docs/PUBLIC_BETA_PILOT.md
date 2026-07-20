@@ -31,7 +31,7 @@ python scripts\pilot.py --store C:\FreshSensePilot\beta.sqlite3 export `
 Publish only aggregate, human-reviewed results:
 
 - unique participants and total reviewed images;
-- results by apple, banana, and orange;
+- results by apple, banana, orange, mango, tomato, and pear;
 - correct, false-fresh, false-rotten, uncertain, unsupported, and retake counts;
 - the conditions and review outcome for each of the three orange failures;
 - median analysis task time;

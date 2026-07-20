@@ -59,7 +59,9 @@ def test_model_output_must_match_configured_classes(monkeypatch):
 def test_valid_model_prediction_is_used(monkeypatch):
     class ValidModel:
         def predict(self, _input, verbose=0):
-            return np.array([[0.01, 0.92, 0.01, 0.02, 0.02, 0.02]])
+            return np.array(
+                [[0.01, 0.92, 0.01, 0.01, 0.01, 0.01, 0.01, 0.005, 0.005, 0.005, 0.005, 0.005]]
+            )
 
     _install_fake_tensorflow(monkeypatch, ValidModel())
     tool = DenseNetVisionTool(
@@ -76,7 +78,9 @@ def test_valid_model_prediction_is_used(monkeypatch):
 def test_gradcam_is_skipped_for_fast_api_scans(monkeypatch):
     class ValidModel:
         def predict(self, _input, verbose=0):
-            return np.array([[0.01, 0.92, 0.01, 0.02, 0.02, 0.02]])
+            return np.array(
+                [[0.01, 0.92, 0.01, 0.01, 0.01, 0.01, 0.01, 0.005, 0.005, 0.005, 0.005, 0.005]]
+            )
 
     class FakeExplainer:
         def __init__(self):

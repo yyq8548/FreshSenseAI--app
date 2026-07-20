@@ -2,124 +2,131 @@
 
 ## Model details
 
-- Application release: FreshSense 0.5.1 Public Beta
-- Task: six-class visible fruit freshness classification
-- Supported fruit identities: apple, banana, orange
-- Output order: `freshapples`, `freshbanana`, `freshoranges`, `rottenapples`, `rottenbanana`, `rottenoranges`
-- Architecture: Keras DenseNet201 with a six-class softmax output
-- Input: RGB image resized to 224 x 224 and scaled to `[0, 1]`
-- Model SHA-256: `81a4ec243781885a6a835bbd94392cd391ed6b7d8274e732911330cff33afbf4`
-- Model size: 220,970,424 bytes
-- Safety gate: cosine distance to six calibrated feature prototypes, mapped to three fruit identities
-- Artifact association: `artifacts/model_manifest.json`
+- Status: FreshSense 0.6.0 public-beta release candidate
+- Task: visible fresh/rotten classification for six supported produce types
+- Supported identities: apple, banana, orange, mango, tomato, pear
+- Architecture: ImageNet-pretrained DenseNet201 frozen visual backbone with a 12-class softmax head
+- Input: one RGB image resized to 224 x 224 and scaled to `[0, 1]`
+- Feature layer: `avg_pool` (1,920 values)
+- Model SHA-256: `854a2451acf4df828092ab75bebff01cbc48361c862557415d589ca477d775cf`
+- Model size: 74,817,136 bytes
+- Gate SHA-256: `dc7b078fa523a23111598b1a29a5acdc27f04ff884d424ef19bdf0420503cc7c`
 
-The available training notebook constructs DenseNet201 with `weights=None`, uses
-categorical cross-entropy with Adam, and configures 30 epochs. The saved model is
-the source of every visual prediction. FreshSense does not substitute random,
-placeholder, or GPT-generated visual labels.
+Output order:
+
+```text
+freshapples, freshbanana, freshoranges, freshmango, freshtomato, freshpear,
+rottenapples, rottenbanana, rottenoranges, rottenmango, rottentomato, rottenpear
+```
+
+The ImageNet normalization is embedded in the saved model. The trained model is
+the source of every visual label; FreshSense does not substitute a random,
+placeholder, or GPT-generated prediction.
 
 ## Intended use
 
 FreshSense provides visual decision support for a clear photograph containing
-one apple, banana, or orange. It may withhold a result when the image is poor,
-the input is unlike calibrated supported fruit, the gate and classifier disagree
-on fruit identity, or prediction confidence/margin is insufficient.
+one supported fruit or tomato type. It can withhold a result when the image is
+poor, unlike the calibrated supported inputs, conflicts with the predicted
+fruit identity, or has insufficient confidence or class margin.
 
 It is not a food-safety device. It cannot detect contamination, internal
 spoilage, odor, texture, pathogens, chemical hazards, or whether food is safe to
-eat. It must not be used as the only basis for consumption or disposal.
+eat. Store staff must inspect the produce and may override the model.
 
-## Dataset audit
+## Dataset and split controls
 
-The canonical local dataset contains 13,600 image files across six classes:
+The expanded prepared dataset contains 26,667 classification images/crops from
+8,049 source groups across 12 classes. Apple, banana, and orange come from the
+legacy class folders. Mango, tomato, and pear are cropped from COCO bounding-box
+exports. Unannotated images and invalid/tiny boxes are excluded.
 
-| Class | Legacy train | Legacy test |
+| Split | Images | Source groups |
 | --- | ---: | ---: |
-| freshapples | 1,693 | 395 |
-| freshbanana | 1,581 | 381 |
-| freshoranges | 1,466 | 388 |
-| rottenapples | 2,342 | 601 |
-| rottenbanana | 2,225 | 530 |
-| rottenoranges | 1,595 | 403 |
+| Train | 18,598 | 5,636 |
+| Validation | 4,026 | 1,208 |
+| Test | 4,043 | 1,205 |
 
-The files reduce to 1,512 source-image groups after known augmentation prefixes
-are removed. The legacy train split contains all 1,512 groups; the legacy test
-split contains 1,310 groups, and all 1,310 also occur in training. Therefore the
-legacy test-group overlap fraction is 100%.
+Roboflow suffixes are removed before grouping, and every crop from one source
+image stays in one split. Automated checks found zero source-group and zero
+exact-output-hash overlap across the three splits.
 
-FreshSense 0.3 creates a deterministic source-grouped manifest with 1,058 train,
-227 validation, and 227 test groups. This prevents leakage inside the new
-manifest. It does not undo the fact that the existing model was already trained
-on the old leaked train split, which contains every source group.
+These controls remove the identified split leakage from this evaluation
+package. They do not make the dataset an independently collected store
+benchmark: source provenance, physical-fruit identity, phone, lighting, and
+background are incomplete.
 
-## Current evaluation
+## Development evaluation
 
-The frozen software-behavior report uses the grouped test records and a separate
-synthetic unsupported test seed:
+Without the withholding policy, the 4,043-image grouped test result is:
 
 | Metric | Result |
 | --- | ---: |
-| Supported images | 2,043 |
-| Accepted supported images | 1,971 |
-| Coverage | 96.48% |
-| Selective accuracy when accepted | 100.00% |
-| Rotten-to-fresh errors | 0 / 1,161 |
-| Synthetic unsupported images | 192 |
-| Synthetic unsupported false acceptance | 11 / 192 (5.73%) |
-| Median model/gate batch latency per image | 14.9 ms |
-| P95 model/gate batch latency per image | 50.9 ms |
+| Accuracy | 98.54% |
+| Macro F1 | 98.72% |
+| Rotten-to-fresh errors | 27 / 2,158 (1.25%) |
 
-These supported-image accuracy values are not independent real-world accuracy
-and must not be advertised as such. The current model has already seen source
-groups represented in this report. Synthetic patterns are useful regression
-tests but are not substitutes for real photographs of unsupported content.
+Selected class F1 results:
 
-## Calibration
+| Class | F1 |
+| --- | ---: |
+| Fresh / rotten mango | 98.21% / 97.60% |
+| Fresh / rotten tomato | 98.23% / 96.54% |
+| Fresh / rotten pear | 99.67% / 100.00% |
 
-The open-set artifact is calibrated on the grouped validation portion using the
-DenseNet `avg_pool` feature layer. Six freshness prototypes map to three fruit
-identities. Initial thresholds retain 95% of each supported validation class;
-synthetic unsupported calibration may raise a threshold, but a coverage cap
-prevents it from retaining less than 90% of any class. Synthetic calibration and
-test use different deterministic seeds.
+With the model-bound open-set gate, 70% minimum confidence, and 15% minimum
+top-two margin:
 
-The gate is model-bound: startup verifies that its model SHA-256 and prototype
-order match the installed model and fruit catalog. It is a safety baseline, not
-a validated arbitrary-object detector.
+| Metric | Result |
+| --- | ---: |
+| Supported images | 4,043 |
+| Accepted / withheld | 3,585 / 458 |
+| Coverage | 88.67% |
+| Selective accuracy when accepted | 99.16% |
+| Overall accuracy including withheld | 87.93% |
+| Rotten-to-fresh errors | 19 / 2,158 (0.88%) |
+| Synthetic unsupported false acceptance | 0 / 192 |
+
+These are grouped development results, not independent real-world accuracy.
+Synthetic unsupported patterns are regression tests and are not substitutes for
+photographs of other produce, objects, people, mixed scenes, and retail shelves.
+
+## Calibration and artifact binding
+
+The open-set artifact uses 12 class centroids from the DenseNet `avg_pool`
+features. Thresholds target 95% own-class validation coverage, with a 90%
+minimum coverage cap and separate deterministic synthetic calibration data.
+Observed validation gate coverage is 96.97%; the synthetic calibration false
+acceptance rate is 0%.
+
+Startup verifies the gate model checksum, feature size, and exact prototype
+order against the model and fruit catalog. Any mismatch fails closed.
 
 ## Known failure modes
 
-- Non-fruit and abstract inputs can still resemble supported features; the
-  separate-seed synthetic false-acceptance rate is currently 5.73%.
-- Mixed-fruit scenes are outside the intended input contract.
-- Lighting, backgrounds, phone cameras, compression, occlusion, cultivars, and
-  freshness stages are not yet represented by an independent field benchmark.
-- Softmax confidence is often near 100% even for unsupported images and must
-  never be interpreted as general certainty.
-- The current model was trained on a leaked legacy split.
-- Freshness labels are visual categories and do not establish food safety.
-- Earlier informal testing reportedly included three incorrectly distinguished
-  orange cases. The photos and case-level metadata have not yet been reviewed,
-  so no orange error rate or improvement claim is available.
+- The accepted test set still contains rotten-to-fresh errors; human review is mandatory.
+- Mixed-fruit scenes and images containing multiple produce types are outside the input contract.
+- Other fruit varieties or retail objects can still resemble supported features.
+- Real phone, lighting, background, cultivar, maturity, and damage conditions are not independently benchmarked.
+- Freshness labels describe visible source-dataset categories and do not establish food safety.
+- Softmax confidence covers only the 12 configured categories and is not general certainty.
+- COCO crops can be easier than uncropped customer photos; store-photo performance may be lower.
 
-## Required evidence before a production claim
+## Required evidence before a production accuracy claim
 
-1. Independently collect supported and unsupported photographs using the
-   protocol in `docs/BENCHMARK_COLLECTION.md`.
-2. Freeze thresholds on the validation split, then evaluate the untouched test
-   split once.
-3. Retrain the classifier with physical-source grouping and rerun the complete
-   evaluation package.
-4. Meet reviewed acceptance criteria for false-fresh, false-rotten,
-   unsupported false acceptance, calibration, coverage, and subgroup behavior.
-5. Complete the limited pilot in `docs/PILOT_GUIDE.md`.
+1. Collect independently photographed supported and unsupported store images.
+2. Keep every physical fruit or tomato specimen in only one split.
+3. Freeze thresholds on validation data and evaluate the untouched test set once.
+4. Review every false-fresh, false-rotten, uncertain, and unsupported outcome.
+5. Measure performance by phone, lighting, background, store, and produce type.
+6. Complete a controlled human-reviewed pilot and document corrections.
 
 ## Reproducibility artifacts
 
-- Grouped legacy manifest: `evaluation/manifests/legacy_grouped_v1.json`
-- Gate calibration: `evaluation/reports/gate_calibration_final.json`
-- Evaluation report and plots: `evaluation/reports/current_model/`
-- Runtime artifact manifest: `artifacts/model_manifest.json`
-- Builder: `scripts/build_open_set_gate.py`
-- Evaluator: `scripts/run_evaluation.py`
-- Verifier: `scripts/verify_model_artifacts.py`
+- Prepared manifest: `evaluation/manifests/expanded_12_class_v1.json`
+- Training and conversion: `training/expanded_dataset.py`, `training/imagenet_densenet.py`
+- Head evaluation: `evaluation/reports/expanded_12_class/imagenet_head_evaluation_report.json`
+- Gate calibration: `evaluation/reports/expanded_12_class/open_set_calibration.json`
+- Gated report and plots: `evaluation/reports/expanded_12_class/gated_test/`
+- WSL2 GPU setup: `scripts/setup_wsl_tensorflow_gpu.sh`
+- Runtime association: `artifacts/model_manifest.json`

@@ -4,9 +4,15 @@
     {"label": "freshapples", "fruit": "apple", "freshness": "fresh"},
     {"label": "freshbanana", "fruit": "banana", "freshness": "fresh"},
     {"label": "freshoranges", "fruit": "orange", "freshness": "fresh"},
+    {"label": "freshmango", "fruit": "mango", "freshness": "fresh"},
+    {"label": "freshtomato", "fruit": "tomato", "freshness": "fresh"},
+    {"label": "freshpear", "fruit": "pear", "freshness": "fresh"},
     {"label": "rottenapples", "fruit": "apple", "freshness": "rotten"},
     {"label": "rottenbanana", "fruit": "banana", "freshness": "rotten"},
-    {"label": "rottenoranges", "fruit": "orange", "freshness": "rotten"}
+    {"label": "rottenoranges", "fruit": "orange", "freshness": "rotten"},
+    {"label": "rottenmango", "fruit": "mango", "freshness": "rotten"},
+    {"label": "rottentomato", "fruit": "tomato", "freshness": "rotten"},
+    {"label": "rottenpear", "fruit": "pear", "freshness": "rotten"}
   ],
   "fruits": [
     {
@@ -26,6 +32,24 @@
       "display_name": "Orange",
       "fresh_shelf_life": "5-10 days at room temperature, longer if refrigerated",
       "fresh_storage_advice": "Store in a cool, dry place or refrigerate for longer shelf life."
+    },
+    {
+      "id": "mango",
+      "display_name": "Mango",
+      "fresh_shelf_life": "2-5 days when ripe at room temperature, longer if refrigerated",
+      "fresh_storage_advice": "Ripen at room temperature, then refrigerate ripe mangoes and inspect for leaking, mold, or fermented odor."
+    },
+    {
+      "id": "tomato",
+      "display_name": "Tomato",
+      "fresh_shelf_life": "3-7 days depending on ripeness and storage temperature",
+      "fresh_storage_advice": "Keep uncut tomatoes dry and at room temperature when possible; refrigerate ripe tomatoes if needed to slow deterioration."
+    },
+    {
+      "id": "pear",
+      "display_name": "Pear",
+      "fresh_shelf_life": "2-4 days after ripening at room temperature, longer if refrigerated",
+      "fresh_storage_advice": "Ripen at room temperature, then refrigerate and separate fruit showing mold, leaking, or collapsed flesh."
     }
   ]
 }

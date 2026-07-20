@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="480">
+<rect width="100%" height="100%" fill="white"/>
+<text x="20" y="30" font-family="Segoe UI" font-size="20" font-weight="700">Reliability diagram</text>
+<line x1="70" y1="415" x2="735" y2="415" stroke="#333"/>
+<line x1="70" y1="55" x2="70" y2="415" stroke="#333"/>
+<line x1="70.0" y1="55" x2="70.0" y2="415" stroke="#eee"/>
+<line x1="70" y1="415.0" x2="735" y2="415.0" stroke="#eee"/>
+<text x="70.0" y="435" text-anchor="middle" font-family="Segoe UI" font-size="11">0.0</text>
+<text x="60" y="419.0" text-anchor="end" font-family="Segoe UI" font-size="11">0.0</text>
+<line x1="203.0" y1="55" x2="203.0" y2="415" stroke="#eee"/>
+<line x1="70" y1="343.0" x2="735" y2="343.0" stroke="#eee"/>
+<text x="203.0" y="435" text-anchor="middle" font-family="Segoe UI" font-size="11">0.2</text>
+<text x="60" y="347.0" text-anchor="end" font-family="Segoe UI" font-size="11">0.2</text>
+<line x1="336.0" y1="55" x2="336.0" y2="415" stroke="#eee"/>
+<line x1="70" y1="271.0" x2="735" y2="271.0" stroke="#eee"/>
+<text x="336.0" y="435" text-anchor="middle" font-family="Segoe UI" font-size="11">0.4</text>
+<text x="60" y="275.0" text-anchor="end" font-family="Segoe UI" font-size="11">0.4</text>
+<line x1="469.0" y1="55" x2="469.0" y2="415" stroke="#eee"/>
+<line x1="70" y1="199.0" x2="735" y2="199.0" stroke="#eee"/>
+<text x="469.0" y="435" text-anchor="middle" font-family="Segoe UI" font-size="11">0.6</text>
+<text x="60" y="203.0" text-anchor="end" font-family="Segoe UI" font-size="11">0.6</text>
+<line x1="602.0" y1="55" x2="602.0" y2="415" stroke="#eee"/>
+<line x1="70" y1="126.99999999999999" x2="735" y2="126.99999999999999" stroke="#eee"/>
+<text x="602.0" y="435" text-anchor="middle" font-family="Segoe UI" font-size="11">0.8</text>
+<text x="60" y="131.0" text-anchor="end" font-family="Segoe UI" font-size="11">0.8</text>
+<line x1="735.0" y1="55" x2="735.0" y2="415" stroke="#eee"/>
+<line x1="70" y1="55.0" x2="735" y2="55.0" stroke="#eee"/>
+<text x="735.0" y="435" text-anchor="middle" font-family="Segoe UI" font-size="11">1.0</text>
+<text x="60" y="59.0" text-anchor="end" font-family="Segoe UI" font-size="11">1.0</text>
+<line x1="70" y1="415" x2="735" y2="55" stroke="#999" stroke-dasharray="6 5"/>
+<polyline points="103.25,415.0 169.75,415.0 236.25,415.0 302.75,415.0 369.25,415.0 435.75000000000006,415.0 502.24999999999994,415.0 562.336943646272,190.0 640.2536588079399,95.00000000000001 732.8402464743145,56.539777587681776" fill="none" stroke="#237A45" stroke-width="3"/>
+<circle cx="103.25" cy="415.0" r="3" fill="#237A45"/>
+<circle cx="169.75" cy="415.0" r="3" fill="#237A45"/>
+<circle cx="236.25" cy="415.0" r="3" fill="#237A45"/>
+<circle cx="302.75" cy="415.0" r="3" fill="#237A45"/>
+<circle cx="369.25" cy="415.0" r="3" fill="#237A45"/>
+<circle cx="435.75000000000006" cy="415.0" r="3" fill="#237A45"/>
+<circle cx="502.24999999999994" cy="415.0" r="3" fill="#237A45"/>
+<circle cx="562.336943646272" cy="190.0" r="3" fill="#237A45"/>
+<circle cx="640.2536588079399" cy="95.00000000000001" r="3" fill="#237A45"/>
+<circle cx="732.8402464743145" cy="56.539777587681776" r="3" fill="#237A45"/>
+<text x="402.5" y="462" text-anchor="middle" font-family="Segoe UI" font-size="13">Mean confidence</text>
+<text x="18" y="235.0" text-anchor="middle" transform="rotate(-90 18 235.0)" font-family="Segoe UI" font-size="13">Observed accuracy</text>
+</svg>

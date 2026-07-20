@@ -1,0 +1,13 @@
+true\predicted,freshapples,freshbanana,freshoranges,freshmango,freshtomato,freshpear,rottenapples,rottenbanana,rottenoranges,rottenmango,rottentomato,rottenpear,__withheld__
+freshapples,307,0,0,0,0,0,0,0,0,0,0,0,17
+freshbanana,0,288,0,0,0,0,0,0,0,0,0,0,17
+freshoranges,0,0,189,0,0,0,0,0,0,0,0,0,18
+freshmango,0,0,1,335,0,0,0,0,0,3,0,0,79
+freshtomato,1,0,0,0,428,0,0,0,0,0,2,0,47
+freshpear,0,0,0,0,0,140,0,0,0,0,0,0,13
+rottenapples,8,0,0,0,0,0,364,0,0,0,0,0,42
+rottenbanana,0,0,0,0,0,0,0,401,0,0,0,0,49
+rottenoranges,0,0,1,0,0,0,1,0,277,0,0,0,53
+rottenmango,0,0,0,4,0,0,0,0,0,390,0,0,44
+rottentomato,0,0,0,1,5,0,0,0,0,3,306,0,65
+rottenpear,0,0,0,0,0,0,0,0,0,0,0,130,14

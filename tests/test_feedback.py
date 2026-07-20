@@ -14,7 +14,7 @@ def test_feedback_url_contains_version_and_result_but_no_photo_data():
 
     body = parse_qs(urlparse(build_feedback_url(state)).query)["body"][0]
 
-    assert "FreshSense version: 0.5.1" in body
+    assert "FreshSense version: 0.6.0" in body
     assert "freshoranges" in body
     assert "0.9100" in body
     assert "photo path" not in body.lower()

@@ -42,8 +42,8 @@ $manifest = [ordered]@{
         "Visual decision support only. FreshSense cannot determine whether food is safe to eat."
     )
     known_limitations = @(
-        "Supports one clear apple, banana, or orange fruit type per photo.",
-        "The current model does not have an independent real-world accuracy estimate.",
+        "Supports one clear apple, banana, orange, mango, tomato, or pear type per photo.",
+        "The six-fruit development model does not have an independent real-world store accuracy estimate.",
         "Unsupported and mixed-fruit images can still be accepted incorrectly.",
         "The unsigned beta can trigger a Windows unrecognized-publisher warning."
     )

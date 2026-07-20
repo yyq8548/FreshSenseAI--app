@@ -129,7 +129,7 @@ try {
     $model = Join-Path $installPath "_internal\models\densenet201.h5"
     $gate = Join-Path $installPath "_internal\models\open_set_gate.npz"
     $artifactManifest = Join-Path $installPath "_internal\artifacts\model_manifest.json"
-    $evaluationReport = Join-Path $installPath "_internal\evaluation\reports\current_model\evaluation_report.json"
+    $evaluationReport = Join-Path $installPath "_internal\evaluation\reports\expanded_12_class\gated_test\evaluation_report.json"
     $embedding = Get-ChildItem `
         (Join-Path $installPath "_internal\models\embedding_cache") `
         -Recurse -Filter "*.onnx" -File -ErrorAction SilentlyContinue |
