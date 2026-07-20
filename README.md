@@ -6,7 +6,7 @@ visible-condition result, and keep the inspection record with the people who
 need to act on it. The current model supports apples, bananas, oranges, mangoes,
 tomatoes, and pears.
 
-[Product overview](#product-overview) | [How to use FreshSense](#how-to-use-freshsense) | [Technology and AI](#technology-and-ai)
+[Video demo](#60-second-product-demo) | [Product overview](#product-overview) | [How to use FreshSense](#how-to-use-freshsense) | [Technology and AI](#technology-and-ai)
 
 [Open the hosted beta](https://freshsenseai.com/) | [Download the Windows beta](https://github.com/yyq8548/FreshSenseAI--app/releases/download/v0.6.0/FreshSenseAI-Setup-0.6.0.exe)
 
@@ -16,7 +16,16 @@ tomatoes, and pears.
 ![Tests](https://img.shields.io/badge/tests-189%20Python%20%2B%2010%20web-brightgreen)
 ![Release](https://img.shields.io/badge/release-0.6.0%20Public%20Beta-blueviolet)
 
-![FreshSense inspection overview](docs/images/workbench/overview.png)
+## 60-second product demo
+
+[▶ Watch the FreshSense product and AI workflow demo](docs/demo/freshsense-recruiter-demo-60s.mp4)
+
+The video follows one inspection from multi-photo upload through computer
+vision, bounded Agent follow-up, human review, Manager Chat, and the daily
+quality report. It includes English neural narration and matching captions.
+[SHA-256 checksum](docs/demo/freshsense-recruiter-demo-60s.mp4.sha256) and
+[media manifest](docs/demo/freshsense-recruiter-demo-60s.json) are included for
+artifact verification.
 
 ## Product overview
 
@@ -79,7 +88,6 @@ decision.
 FreshSense stores the result, location, batch reference, note, review status,
 and timestamps. It does not write uploaded image bytes or filenames to the
 workspace database.
-
 
 ## Technology and AI
 

@@ -1,0 +1,786 @@
+[
+  {
+    "text": "Fruit",
+    "startMs": 300,
+    "endMs": 410,
+    "timestampMs": 420,
+    "confidence": 0.965087
+  },
+  {
+    "text": " checks",
+    "startMs": 410,
+    "endMs": 910,
+    "timestampMs": 700,
+    "confidence": 0.954301
+  },
+  {
+    "text": " happen",
+    "startMs": 910,
+    "endMs": 1410,
+    "timestampMs": 1100,
+    "confidence": 0.988927
+  },
+  {
+    "text": " fast,",
+    "startMs": 1410,
+    "endMs": 1950,
+    "timestampMs": 1520,
+    "confidence": 0.769522
+  },
+  {
+    "text": " but",
+    "startMs": 1950,
+    "endMs": 2120,
+    "timestampMs": 2060,
+    "confidence": 0.900151
+  },
+  {
+    "text": " the",
+    "startMs": 2120,
+    "endMs": 2240,
+    "timestampMs": 2200,
+    "confidence": 0.995737
+  },
+  {
+    "text": " record",
+    "startMs": 2240,
+    "endMs": 2680,
+    "timestampMs": 2540,
+    "confidence": 0.995142
+  },
+  {
+    "text": " often",
+    "startMs": 2680,
+    "endMs": 3040,
+    "timestampMs": 3000,
+    "confidence": 0.971666
+  },
+  {
+    "text": " disappears",
+    "startMs": 3040,
+    "endMs": 3790,
+    "timestampMs": 3460,
+    "confidence": 0.983674
+  },
+  {
+    "text": " with",
+    "startMs": 3790,
+    "endMs": 4090,
+    "timestampMs": 3740,
+    "confidence": 0.988934
+  },
+  {
+    "text": " the",
+    "startMs": 4090,
+    "endMs": 4220,
+    "timestampMs": 3920,
+    "confidence": 0.61675
+  },
+  {
+    "text": " shift.",
+    "startMs": 4220,
+    "endMs": 4600,
+    "timestampMs": 4260,
+    "confidence": 0.993073
+  },
+  {
+    "text": " FreshSense",
+    "startMs": 4970,
+    "endMs": 5340,
+    "timestampMs": 5340,
+    "confidence": 0.433589
+  },
+  {
+    "text": " gives",
+    "startMs": 5340,
+    "endMs": 5710,
+    "timestampMs": 5760,
+    "confidence": 0.971608
+  },
+  {
+    "text": " grocery",
+    "startMs": 5710,
+    "endMs": 6230,
+    "timestampMs": 6180,
+    "confidence": 0.990441
+  },
+  {
+    "text": " teams",
+    "startMs": 6230,
+    "endMs": 6600,
+    "timestampMs": 6620,
+    "confidence": 0.995562
+  },
+  {
+    "text": " a",
+    "startMs": 6600,
+    "endMs": 6700,
+    "timestampMs": 6800,
+    "confidence": 0.996808
+  },
+  {
+    "text": " shared",
+    "startMs": 6700,
+    "endMs": 7110,
+    "timestampMs": 7140,
+    "confidence": 0.993724
+  },
+  {
+    "text": " inspection",
+    "startMs": 7110,
+    "endMs": 7850,
+    "timestampMs": 7620,
+    "confidence": 0.989149
+  },
+  {
+    "text": " record.",
+    "startMs": 7850,
+    "endMs": 8400,
+    "timestampMs": 8180,
+    "confidence": 0.998538
+  },
+  {
+    "text": " Staff",
+    "startMs": 8400,
+    "endMs": 8820,
+    "timestampMs": 8960,
+    "confidence": 0.972986
+  },
+  {
+    "text": " can",
+    "startMs": 8820,
+    "endMs": 9150,
+    "timestampMs": 9220,
+    "confidence": 0.975178
+  },
+  {
+    "text": " add",
+    "startMs": 9150,
+    "endMs": 9320,
+    "timestampMs": 9400,
+    "confidence": 0.972999
+  },
+  {
+    "text": " a",
+    "startMs": 9320,
+    "endMs": 9400,
+    "timestampMs": 9560,
+    "confidence": 0.998978
+  },
+  {
+    "text": " photo",
+    "startMs": 9400,
+    "endMs": 9820,
+    "timestampMs": 9840,
+    "confidence": 0.998085
+  },
+  {
+    "text": " or",
+    "startMs": 9820,
+    "endMs": 9990,
+    "timestampMs": 10220,
+    "confidence": 0.969829
+  },
+  {
+    "text": " batch",
+    "startMs": 9990,
+    "endMs": 10410,
+    "timestampMs": 10520,
+    "confidence": 0.935189
+  },
+  {
+    "text": " of",
+    "startMs": 10410,
+    "endMs": 10570,
+    "timestampMs": 10720,
+    "confidence": 0.998978
+  },
+  {
+    "text": " twenty.",
+    "startMs": 10570,
+    "endMs": 11400,
+    "timestampMs": 11020,
+    "confidence": 0.820832
+  },
+  {
+    "text": " The",
+    "startMs": 11400,
+    "endMs": 11650,
+    "timestampMs": 11720,
+    "confidence": 0.998224
+  },
+  {
+    "text": " model",
+    "startMs": 11650,
+    "endMs": 12010,
+    "timestampMs": 11980,
+    "confidence": 0.997759
+  },
+  {
+    "text": " covers",
+    "startMs": 12010,
+    "endMs": 12470,
+    "timestampMs": 12360,
+    "confidence": 0.998426
+  },
+  {
+    "text": " apples,",
+    "startMs": 12470,
+    "endMs": 13130,
+    "timestampMs": 12780,
+    "confidence": 0.98931
+  },
+  {
+    "text": " bananas,",
+    "startMs": 13130,
+    "endMs": 13840,
+    "timestampMs": 13380,
+    "confidence": 0.989499
+  },
+  {
+    "text": " oranges,",
+    "startMs": 13840,
+    "endMs": 14550,
+    "timestampMs": 14160,
+    "confidence": 0.984784
+  },
+  {
+    "text": " mangoes,",
+    "startMs": 14550,
+    "endMs": 15350,
+    "timestampMs": 14840,
+    "confidence": 0.805678
+  },
+  {
+    "text": " tomatoes,",
+    "startMs": 15350,
+    "endMs": 16130,
+    "timestampMs": 15660,
+    "confidence": 0.701602
+  },
+  {
+    "text": " and",
+    "startMs": 16130,
+    "endMs": 16410,
+    "timestampMs": 16320,
+    "confidence": 0.992133
+  },
+  {
+    "text": " pears.",
+    "startMs": 16410,
+    "endMs": 17100,
+    "timestampMs": 16540,
+    "confidence": 0.985936
+  },
+  {
+    "text": " Photos",
+    "startMs": 17100,
+    "endMs": 17570,
+    "timestampMs": 17640,
+    "confidence": 0.991249
+  },
+  {
+    "text": " are",
+    "startMs": 17570,
+    "endMs": 17830,
+    "timestampMs": 17940,
+    "confidence": 0.998045
+  },
+  {
+    "text": " not",
+    "startMs": 17830,
+    "endMs": 18050,
+    "timestampMs": 18140,
+    "confidence": 0.996003
+  },
+  {
+    "text": " stored",
+    "startMs": 18050,
+    "endMs": 18520,
+    "timestampMs": 18460,
+    "confidence": 0.999133
+  },
+  {
+    "text": " by",
+    "startMs": 18520,
+    "endMs": 18680,
+    "timestampMs": 18700,
+    "confidence": 0.998334
+  },
+  {
+    "text": " default.",
+    "startMs": 18680,
+    "endMs": 19500,
+    "timestampMs": 19100,
+    "confidence": 0.993455
+  },
+  {
+    "text": " DenseNet201",
+    "startMs": 19500,
+    "endMs": 20090,
+    "timestampMs": 19860,
+    "confidence": 0.686215
+  },
+  {
+    "text": " looks",
+    "startMs": 20780,
+    "endMs": 21240,
+    "timestampMs": 21060,
+    "confidence": 0.99559
+  },
+  {
+    "text": " for",
+    "startMs": 21240,
+    "endMs": 21390,
+    "timestampMs": 21320,
+    "confidence": 0.999512
+  },
+  {
+    "text": " visible",
+    "startMs": 21390,
+    "endMs": 21920,
+    "timestampMs": 21660,
+    "confidence": 0.976757
+  },
+  {
+    "text": " fresh",
+    "startMs": 21920,
+    "endMs": 22310,
+    "timestampMs": 22080,
+    "confidence": 0.933874
+  },
+  {
+    "text": " or",
+    "startMs": 22310,
+    "endMs": 22450,
+    "timestampMs": 22540,
+    "confidence": 0.93309
+  },
+  {
+    "text": " rotten",
+    "startMs": 22450,
+    "endMs": 22910,
+    "timestampMs": 22880,
+    "confidence": 0.985646
+  },
+  {
+    "text": " patterns.",
+    "startMs": 22910,
+    "endMs": 23800,
+    "timestampMs": 23440,
+    "confidence": 0.988372
+  },
+  {
+    "text": " A",
+    "startMs": 23800,
+    "endMs": 24030,
+    "timestampMs": 24180,
+    "confidence": 0.991987
+  },
+  {
+    "text": " separate",
+    "startMs": 24030,
+    "endMs": 24490,
+    "timestampMs": 24500,
+    "confidence": 0.998856
+  },
+  {
+    "text": " gate",
+    "startMs": 24490,
+    "endMs": 24810,
+    "timestampMs": 24740,
+    "confidence": 0.978775
+  },
+  {
+    "text": " withholds",
+    "startMs": 24810,
+    "endMs": 25490,
+    "timestampMs": 24980,
+    "confidence": 0.962028
+  },
+  {
+    "text": " unclear",
+    "startMs": 25490,
+    "endMs": 26040,
+    "timestampMs": 25800,
+    "confidence": 0.988319
+  },
+  {
+    "text": " or",
+    "startMs": 26040,
+    "endMs": 26180,
+    "timestampMs": 26220,
+    "confidence": 0.983099
+  },
+  {
+    "text": " unsupported",
+    "startMs": 26180,
+    "endMs": 27040,
+    "timestampMs": 26900,
+    "confidence": 0.987747
+  },
+  {
+    "text": " inputs.",
+    "startMs": 27040,
+    "endMs": 27800,
+    "timestampMs": 27440,
+    "confidence": 0.99229
+  },
+  {
+    "text": " A",
+    "startMs": 27870,
+    "endMs": 28050,
+    "timestampMs": 28180,
+    "confidence": 0.384352
+  },
+  {
+    "text": " bounded",
+    "startMs": 28050,
+    "endMs": 28360,
+    "timestampMs": 28480,
+    "confidence": 0.962811
+  },
+  {
+    "text": " Agent",
+    "startMs": 28360,
+    "endMs": 28710,
+    "timestampMs": 28880,
+    "confidence": 0.962223
+  },
+  {
+    "text": " checks",
+    "startMs": 28710,
+    "endMs": 29120,
+    "timestampMs": 29200,
+    "confidence": 0.997611
+  },
+  {
+    "text": " history",
+    "startMs": 29120,
+    "endMs": 29620,
+    "timestampMs": 29720,
+    "confidence": 0.991318
+  },
+  {
+    "text": " and",
+    "startMs": 29620,
+    "endMs": 29830,
+    "timestampMs": 30040,
+    "confidence": 0.993779
+  },
+  {
+    "text": " reviewed",
+    "startMs": 29830,
+    "endMs": 30420,
+    "timestampMs": 30320,
+    "confidence": 0.989112
+  },
+  {
+    "text": " guidance,",
+    "startMs": 30420,
+    "endMs": 31330,
+    "timestampMs": 30880,
+    "confidence": 0.895016
+  },
+  {
+    "text": " creates",
+    "startMs": 31330,
+    "endMs": 31750,
+    "timestampMs": 31600,
+    "confidence": 0.576932
+  },
+  {
+    "text": " follow-up",
+    "startMs": 31750,
+    "endMs": 32240,
+    "timestampMs": 31900,
+    "confidence": 0.832412
+  },
+  {
+    "text": " tasks,",
+    "startMs": 32240,
+    "endMs": 32910,
+    "timestampMs": 32580,
+    "confidence": 0.771149
+  },
+  {
+    "text": " and",
+    "startMs": 32910,
+    "endMs": 33080,
+    "timestampMs": 33020,
+    "confidence": 0.851617
+  },
+  {
+    "text": " notifies",
+    "startMs": 33080,
+    "endMs": 33630,
+    "timestampMs": 33180,
+    "confidence": 0.909041
+  },
+  {
+    "text": " staff.",
+    "startMs": 33630,
+    "endMs": 34300,
+    "timestampMs": 33900,
+    "confidence": 0.944043
+  },
+  {
+    "text": " High-risk",
+    "startMs": 34300,
+    "endMs": 35020,
+    "timestampMs": 34740,
+    "confidence": 0.766766
+  },
+  {
+    "text": " actions",
+    "startMs": 35020,
+    "endMs": 35460,
+    "timestampMs": 35420,
+    "confidence": 0.996417
+  },
+  {
+    "text": " require",
+    "startMs": 35460,
+    "endMs": 35970,
+    "timestampMs": 35900,
+    "confidence": 0.997212
+  },
+  {
+    "text": " manager",
+    "startMs": 35970,
+    "endMs": 36480,
+    "timestampMs": 36440,
+    "confidence": 0.810313
+  },
+  {
+    "text": " approval.",
+    "startMs": 36480,
+    "endMs": 37300,
+    "timestampMs": 36840,
+    "confidence": 0.998382
+  },
+  {
+    "text": " Staff",
+    "startMs": 37300,
+    "endMs": 37700,
+    "timestampMs": 37780,
+    "confidence": 0.997368
+  },
+  {
+    "text": " confirm",
+    "startMs": 37700,
+    "endMs": 38260,
+    "timestampMs": 38220,
+    "confidence": 0.993276
+  },
+  {
+    "text": " or",
+    "startMs": 38260,
+    "endMs": 38460,
+    "timestampMs": 38600,
+    "confidence": 0.975792
+  },
+  {
+    "text": " correct",
+    "startMs": 38460,
+    "endMs": 38990,
+    "timestampMs": 38920,
+    "confidence": 0.999108
+  },
+  {
+    "text": " results.",
+    "startMs": 38990,
+    "endMs": 39800,
+    "timestampMs": 39420,
+    "confidence": 0.999199
+  },
+  {
+    "text": " Managers",
+    "startMs": 39800,
+    "endMs": 40380,
+    "timestampMs": 40140,
+    "confidence": 0.966543
+  },
+  {
+    "text": " ask",
+    "startMs": 40380,
+    "endMs": 40600,
+    "timestampMs": 40820,
+    "confidence": 0.991631
+  },
+  {
+    "text": " grounded",
+    "startMs": 40600,
+    "endMs": 41180,
+    "timestampMs": 41200,
+    "confidence": 0.989676
+  },
+  {
+    "text": " questions",
+    "startMs": 41180,
+    "endMs": 41940,
+    "timestampMs": 41720,
+    "confidence": 0.998921
+  },
+  {
+    "text": " and",
+    "startMs": 41940,
+    "endMs": 42060,
+    "timestampMs": 42100,
+    "confidence": 0.953563
+  },
+  {
+    "text": " check",
+    "startMs": 42060,
+    "endMs": 42460,
+    "timestampMs": 42360,
+    "confidence": 0.999081
+  },
+  {
+    "text": " the",
+    "startMs": 42460,
+    "endMs": 42640,
+    "timestampMs": 42540,
+    "confidence": 0.996554
+  },
+  {
+    "text": " daily",
+    "startMs": 42640,
+    "endMs": 43060,
+    "timestampMs": 42800,
+    "confidence": 0.987328
+  },
+  {
+    "text": " report.",
+    "startMs": 43060,
+    "endMs": 43700,
+    "timestampMs": 43280,
+    "confidence": 0.998719
+  },
+  {
+    "text": " FreshSense",
+    "startMs": 44190,
+    "endMs": 44560,
+    "timestampMs": 44300,
+    "confidence": 0.895865
+  },
+  {
+    "text": " runs",
+    "startMs": 44560,
+    "endMs": 44900,
+    "timestampMs": 44640,
+    "confidence": 0.999182
+  },
+  {
+    "text": " on",
+    "startMs": 44900,
+    "endMs": 45070,
+    "timestampMs": 44920,
+    "confidence": 0.999115
+  },
+  {
+    "text": " Python,",
+    "startMs": 45070,
+    "endMs": 45830,
+    "timestampMs": 45320,
+    "confidence": 0.98382
+  },
+  {
+    "text": " TensorFlow,",
+    "startMs": 45830,
+    "endMs": 46980,
+    "timestampMs": 45980,
+    "confidence": 0.959955
+  },
+  {
+    "text": " FastAPI,",
+    "startMs": 46980,
+    "endMs": 47300,
+    "timestampMs": 47200,
+    "confidence": 0.708553
+  },
+  {
+    "text": " React,",
+    "startMs": 47730,
+    "endMs": 48550,
+    "timestampMs": 48460,
+    "confidence": 0.975304
+  },
+  {
+    "text": " PostgreSQL,",
+    "startMs": 48550,
+    "endMs": 49690,
+    "timestampMs": 49160,
+    "confidence": 0.906941
+  },
+  {
+    "text": " and",
+    "startMs": 49690,
+    "endMs": 50020,
+    "timestampMs": 50200,
+    "confidence": 0.99865
+  },
+  {
+    "text": " Azure.",
+    "startMs": 50020,
+    "endMs": 50900,
+    "timestampMs": 50540,
+    "confidence": 0.995625
+  },
+  {
+    "text": " Try",
+    "startMs": 50900,
+    "endMs": 51170,
+    "timestampMs": 51320,
+    "confidence": 0.972802
+  },
+  {
+    "text": " freshsenseai.com",
+    "startMs": 51170,
+    "endMs": 52880,
+    "timestampMs": 51540,
+    "confidence": 0.332191
+  },
+  {
+    "text": " or",
+    "startMs": 52880,
+    "endMs": 53060,
+    "timestampMs": 53480,
+    "confidence": 0.932081
+  },
+  {
+    "text": " view",
+    "startMs": 53060,
+    "endMs": 53420,
+    "timestampMs": 53760,
+    "confidence": 0.996799
+  },
+  {
+    "text": " the",
+    "startMs": 53420,
+    "endMs": 53690,
+    "timestampMs": 53920,
+    "confidence": 0.998974
+  },
+  {
+    "text": " code",
+    "startMs": 53690,
+    "endMs": 54050,
+    "timestampMs": 54140,
+    "confidence": 0.99648
+  },
+  {
+    "text": " on",
+    "startMs": 54050,
+    "endMs": 54230,
+    "timestampMs": 54380,
+    "confidence": 0.998757
+  },
+  {
+    "text": " GitHub.",
+    "startMs": 54230,
+    "endMs": 55100,
+    "timestampMs": 54620,
+    "confidence": 0.929245
+  }
+]

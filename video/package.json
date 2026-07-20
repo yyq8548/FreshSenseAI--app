@@ -1,0 +1,38 @@
+{
+  "name": "freshsense-recruiter-demo",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "assets": "tsx scripts/sync-assets.ts",
+    "voice": "tsx scripts/generate-voiceover.ts",
+    "captions": "tsx scripts/generate-captions.ts",
+    "music": "tsx scripts/generate-music.ts",
+    "media": "npm run voice && npm run captions && npm run music",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "studio": "npm run assets && remotion studio src/index.ts",
+    "render:stills": "npm run assets && tsx scripts/render-stills.ts",
+    "render": "npm run assets && remotion render src/index.ts FreshSenseRecruiterDemo ../docs/demo/freshsense-recruiter-demo-60s.mp4 --codec=h264 --pixel-format=yuv420p --image-format=png --color-space=bt709 --overwrite",
+    "verify": "tsx scripts/verify-output.ts",
+    "package:demo": "tsx scripts/package-output.ts"
+  },
+  "dependencies": {
+    "@remotion/captions": "4.0.495",
+    "@remotion/install-whisper-cpp": "4.0.495",
+    "@remotion/media": "4.0.495",
+    "mediabunny": "1.50.9",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "remotion": "4.0.495"
+  },
+  "devDependencies": {
+    "@remotion/cli": "4.0.495",
+    "@types/node": "26.1.1",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "tsx": "4.23.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}

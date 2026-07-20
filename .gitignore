@@ -7,6 +7,7 @@ __pycache__/
 build/
 dist/
 work/
+.worktrees/
 web/node_modules/
 web/dist/
 web/.env.local
@@ -30,3 +31,10 @@ pilot/data/
 runtime/
 ci/golden/
 FRUIT_CLASSIFICATION_FRESH_VS_ROTTEN_USING-CONVOLUTIONAL-NEURAL_NETWORK-main/
+video/node_modules/
+video/out/
+video/.tmp/
+video/whisper.cpp/
+video/public/screens/*.png
+video/public/audio/*.wav
+video/public/captions/*.json
