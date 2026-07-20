@@ -42,6 +42,42 @@
     "text": "Oranges with visible mold, soft collapsed areas, leaking liquid, or fermented odor should be discarded. Mold on citrus can spread beyond the visible surface."
   },
   {
+    "id": "mango_storage",
+    "fruit": "mango",
+    "topic": "storage",
+    "text": "Unripe mangoes can ripen at room temperature. Refrigerate ripe mangoes to slow deterioration and keep cut mango refrigerated in a covered container."
+  },
+  {
+    "id": "mango_safety",
+    "fruit": "mango",
+    "topic": "food_safety",
+    "text": "Discard mangoes with visible mold, leaking or slimy flesh, deep collapsed areas, or a fermented odor. Dark skin marks alone do not prove internal spoilage."
+  },
+  {
+    "id": "tomato_storage",
+    "fruit": "tomato",
+    "topic": "storage",
+    "text": "Store intact tomatoes dry and at room temperature when possible. Refrigeration can slow deterioration once tomatoes are fully ripe, and cut tomatoes should be refrigerated."
+  },
+  {
+    "id": "tomato_safety",
+    "fruit": "tomato",
+    "topic": "food_safety",
+    "text": "Tomatoes with mold, leaking liquid, slimy skin, a sour odor, or broadly collapsed flesh should be discarded rather than judged by color alone."
+  },
+  {
+    "id": "pear_storage",
+    "fruit": "pear",
+    "topic": "storage",
+    "text": "Allow firm pears to ripen at room temperature, then refrigerate ripe pears. Remove damaged pears from a batch so deterioration does not spread unnoticed."
+  },
+  {
+    "id": "pear_safety",
+    "fruit": "pear",
+    "topic": "food_safety",
+    "text": "Discard pears with mold, leaking juice, a fermented odor, slimy surfaces, or large collapsed areas. Normal ripening softness is not by itself proof of spoilage."
+  },
+  {
     "id": "general_photo_quality",
     "fruit": "general",
     "topic": "image_quality",

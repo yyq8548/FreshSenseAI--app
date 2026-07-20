@@ -10,7 +10,8 @@ source groups overlap completely.
 
 ## Collection matrix
 
-Collect independently photographed apples, bananas, and oranges across:
+Collect independently photographed apples, bananas, oranges, mangoes, tomatoes,
+and pears across:
 
 - at least three phone models;
 - daylight, warm indoor, cool indoor, dim, and backlit conditions;
@@ -39,7 +40,7 @@ retune.
 
 1. Copy `evaluation/manifests/real_world_annotations_template.csv`.
 2. Use anonymized sample IDs and relative image paths.
-3. For supported images, enter the exact six-class label.
+3. For supported images, enter the exact 12-class label.
 4. For unsupported images, set `supported=false` and leave `label` blank.
 5. Record device, lighting, background, collection batch, reviewer, and notes.
 6. Obtain permission and document licensing/consent outside the repository when

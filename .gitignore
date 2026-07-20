@@ -19,6 +19,7 @@ runtime-bundle*.zip
 models/*.h5
 models/*.keras
 models/embedding_cache/
+models/open_set_gate-*.npz
 dataset/
 *.h5
 *.keras

@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="480">
+<rect width="100%" height="100%" fill="white"/>
+<text x="20" y="30" font-family="Segoe UI" font-size="20" font-weight="700">Accuracy versus retained coverage</text>
+<line x1="70" y1="415" x2="735" y2="415" stroke="#333"/>
+<line x1="70" y1="55" x2="70" y2="415" stroke="#333"/>
+<line x1="70.0" y1="55" x2="70.0" y2="415" stroke="#eee"/>
+<line x1="70" y1="415.0" x2="735" y2="415.0" stroke="#eee"/>
+<text x="70.0" y="435" text-anchor="middle" font-family="Segoe UI" font-size="11">0.0</text>
+<text x="60" y="419.0" text-anchor="end" font-family="Segoe UI" font-size="11">0.0</text>
+<line x1="203.0" y1="55" x2="203.0" y2="415" stroke="#eee"/>
+<line x1="70" y1="343.0" x2="735" y2="343.0" stroke="#eee"/>
+<text x="203.0" y="435" text-anchor="middle" font-family="Segoe UI" font-size="11">0.2</text>
+<text x="60" y="347.0" text-anchor="end" font-family="Segoe UI" font-size="11">0.2</text>
+<line x1="336.0" y1="55" x2="336.0" y2="415" stroke="#eee"/>
+<line x1="70" y1="271.0" x2="735" y2="271.0" stroke="#eee"/>
+<text x="336.0" y="435" text-anchor="middle" font-family="Segoe UI" font-size="11">0.4</text>
+<text x="60" y="275.0" text-anchor="end" font-family="Segoe UI" font-size="11">0.4</text>
+<line x1="469.0" y1="55" x2="469.0" y2="415" stroke="#eee"/>
+<line x1="70" y1="199.0" x2="735" y2="199.0" stroke="#eee"/>
+<text x="469.0" y="435" text-anchor="middle" font-family="Segoe UI" font-size="11">0.6</text>
+<text x="60" y="203.0" text-anchor="end" font-family="Segoe UI" font-size="11">0.6</text>
+<line x1="602.0" y1="55" x2="602.0" y2="415" stroke="#eee"/>
+<line x1="70" y1="126.99999999999999" x2="735" y2="126.99999999999999" stroke="#eee"/>
+<text x="602.0" y="435" text-anchor="middle" font-family="Segoe UI" font-size="11">0.8</text>
+<text x="60" y="131.0" text-anchor="end" font-family="Segoe UI" font-size="11">0.8</text>
+<line x1="735.0" y1="55" x2="735.0" y2="415" stroke="#eee"/>
+<line x1="70" y1="55.0" x2="735" y2="55.0" stroke="#eee"/>
+<text x="735.0" y="435" text-anchor="middle" font-family="Segoe UI" font-size="11">1.0</text>
+<text x="60" y="59.0" text-anchor="end" font-family="Segoe UI" font-size="11">1.0</text>
+<polyline points="93.68538214197378,55.0 117.37076428394757,55.0 141.05614642592133,55.0 164.74152856789513,55.0 188.4269107098689,55.0 212.11229285184268,55.0 235.79767499381649,55.0 259.48305713579026,55.0 283.16843927776404,55.0 306.8538214197378,55.0 330.5392035617116,55.0 354.22458570368536,55.0 377.90996784565914,55.0 401.59534998763297,55.0 425.28073212960675,55.0 448.9661142715805,55.0 472.65149641355424,55.0 496.3368785555281,55.0 520.0222606975019,55.0 543.7076428394756,55.0 567.3930249814493,55.0 591.0784071234232,55.11363636363637 614.763789265397,55.434782608695656 638.4491714073707,56.14583333333333 662.1345535493446,59.499999999999986 662.9569626514964,59.99306518723994" fill="none" stroke="#237A45" stroke-width="3"/>
+<circle cx="93.68538214197378" cy="55.0" r="3" fill="#237A45"/>
+<circle cx="117.37076428394757" cy="55.0" r="3" fill="#237A45"/>
+<circle cx="141.05614642592133" cy="55.0" r="3" fill="#237A45"/>
+<circle cx="164.74152856789513" cy="55.0" r="3" fill="#237A45"/>
+<circle cx="188.4269107098689" cy="55.0" r="3" fill="#237A45"/>
+<circle cx="212.11229285184268" cy="55.0" r="3" fill="#237A45"/>
+<circle cx="235.79767499381649" cy="55.0" r="3" fill="#237A45"/>
+<circle cx="259.48305713579026" cy="55.0" r="3" fill="#237A45"/>
+<circle cx="283.16843927776404" cy="55.0" r="3" fill="#237A45"/>
+<circle cx="306.8538214197378" cy="55.0" r="3" fill="#237A45"/>
+<circle cx="330.5392035617116" cy="55.0" r="3" fill="#237A45"/>
+<circle cx="354.22458570368536" cy="55.0" r="3" fill="#237A45"/>
+<circle cx="377.90996784565914" cy="55.0" r="3" fill="#237A45"/>
+<circle cx="401.59534998763297" cy="55.0" r="3" fill="#237A45"/>
+<circle cx="425.28073212960675" cy="55.0" r="3" fill="#237A45"/>
+<circle cx="448.9661142715805" cy="55.0" r="3" fill="#237A45"/>
+<circle cx="472.65149641355424" cy="55.0" r="3" fill="#237A45"/>
+<circle cx="496.3368785555281" cy="55.0" r="3" fill="#237A45"/>
+<circle cx="520.0222606975019" cy="55.0" r="3" fill="#237A45"/>
+<circle cx="543.7076428394756" cy="55.0" r="3" fill="#237A45"/>
+<circle cx="567.3930249814493" cy="55.0" r="3" fill="#237A45"/>
+<circle cx="591.0784071234232" cy="55.11363636363637" r="3" fill="#237A45"/>
+<circle cx="614.763789265397" cy="55.434782608695656" r="3" fill="#237A45"/>
+<circle cx="638.4491714073707" cy="56.14583333333333" r="3" fill="#237A45"/>
+<circle cx="662.1345535493446" cy="59.499999999999986" r="3" fill="#237A45"/>
+<circle cx="662.9569626514964" cy="59.99306518723994" r="3" fill="#237A45"/>
+<text x="402.5" y="462" text-anchor="middle" font-family="Segoe UI" font-size="13">Coverage</text>
+<text x="18" y="235.0" text-anchor="middle" transform="rotate(-90 18 235.0)" font-family="Segoe UI" font-size="13">Selective accuracy</text>
+</svg>

@@ -179,7 +179,7 @@ def test_api_loads_one_shared_agent_and_reports_health():
         "semantic_retrieval_ready": True,
         "retrieval_mode": "semantic",
         "semantic_model": "test/semantic-model",
-        "supported_fruits": ["Apple", "Banana", "Orange"],
+        "supported_fruits": ["Apple", "Banana", "Orange", "Mango", "Tomato", "Pear"],
         "image_retention": False,
         "database_backend": "sqlite",
         "authentication_required": False,

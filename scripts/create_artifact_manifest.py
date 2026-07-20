@@ -24,16 +24,18 @@ def main() -> int:
         "evaluation_manifest": PROJECT_ROOT
         / "evaluation"
         / "manifests"
-        / "legacy_grouped_v1.json",
+        / "expanded_12_class_v1.json",
         "evaluation_report": PROJECT_ROOT
         / "evaluation"
         / "reports"
-        / "current_model"
+        / "expanded_12_class"
+        / "gated_test"
         / "evaluation_report.json",
         "gate_calibration_report": PROJECT_ROOT
         / "evaluation"
         / "reports"
-        / "gate_calibration_final.json",
+        / "expanded_12_class"
+        / "open_set_calibration.json",
     }
     payload = build_artifact_manifest(
         project_root=PROJECT_ROOT,

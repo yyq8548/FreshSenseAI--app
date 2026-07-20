@@ -35,10 +35,10 @@ def _complete_release_assets(tmp_path: Path) -> dict[str, Path]:
 def test_version_is_centralized_and_valid():
     version = read_release_version(ROOT / "VERSION")
 
-    assert version == "0.5.1"
+    assert version == "0.6.0"
     assert APP_VERSION == version
     assert read_app_version(ROOT / "VERSION") == version
-    assert windows_version_tuple(version) == (0, 5, 1, 0)
+    assert windows_version_tuple(version) == (0, 6, 0, 0)
 
 
 def test_invalid_or_unavailable_runtime_version_uses_safe_label(tmp_path):
@@ -61,7 +61,7 @@ def test_windows_version_metadata_matches_release_version():
 def test_release_asset_validation_accepts_complete_local_bundle(tmp_path):
     assets = _complete_release_assets(tmp_path)
 
-    assert validate_release_assets(**assets) == "0.5.1"
+    assert validate_release_assets(**assets) == "0.6.0"
 
 
 def test_release_asset_validation_fails_closed_without_embedding_model(tmp_path):

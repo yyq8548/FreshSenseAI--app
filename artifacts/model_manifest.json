@@ -1,84 +1,93 @@
 {
-  "application_version": "0.5.1",
+  "application_version": "0.6.0",
   "artifacts": {
     "evaluation_manifest": {
-      "bytes": 9233997,
-      "path": "evaluation/manifests/legacy_grouped_v1.json",
-      "sha256": "4c1529096671c1ae184a39858e1fe4c2b9cc8a855f1b6f1eb41f3a984ae53424"
+      "bytes": 17511391,
+      "path": "evaluation/manifests/expanded_12_class_v1.json",
+      "sha256": "9866dfc60c25747b431c19e8fc0ec375f208c3cc60cf1e2e3710be3600db27d2"
     },
     "evaluation_report": {
-      "bytes": 2282347,
-      "path": "evaluation/reports/current_model/evaluation_report.json",
-      "sha256": "cc48fea9b37cd67597fa5ddf9c81cc3011406005ae99af7a80c305a1a85be4ae"
+      "bytes": 5049297,
+      "path": "evaluation/reports/expanded_12_class/gated_test/evaluation_report.json",
+      "sha256": "35c284ee667d65a1a563ede473e0f1abfc6ae8603c2f96aa46b2ae81532bc983"
     },
     "fruit_catalog": {
-      "bytes": 1193,
+      "bytes": 2512,
       "path": "data/fruit_catalog.json",
-      "sha256": "31230ffaab066ec42f2b7e3792a940c789c863a04ca4b0d624f80a31824cc696"
+      "sha256": "c3f7f9e551892b24a8eb91a7d571adbd08b1250243ed75949900a27ae1580a4a"
     },
     "gate_calibration_report": {
-      "bytes": 3783,
-      "path": "evaluation/reports/gate_calibration_final.json",
-      "sha256": "a82b997291ef7ce6543cb2928f9e37dc8149578801f70dceff52beea050db3f6"
+      "bytes": 6201,
+      "path": "evaluation/reports/expanded_12_class/open_set_calibration.json",
+      "sha256": "1617366bd1b3b0fdcb7249db9a4c02a14ee207e2d0fc5bead80ae474d366db20"
     },
     "knowledge_base": {
-      "bytes": 2341,
+      "bytes": 3856,
       "path": "data/food_knowledge_base.json",
-      "sha256": "3d40306ea8de523ce703eee38c3837f22cc4a14fab7dedad6118475589086efd"
+      "sha256": "86781a4cf64f9b296610c2677e560c09f94996d1cfc0e05c0943a7aba673c252"
     },
     "open_set_gate": {
-      "bytes": 45726,
+      "bytes": 90366,
       "path": "models/open_set_gate.npz",
-      "sha256": "62cd980b713cf868fc9a1d4b8a26b36938887fd7b9340934cab6faa8c944c144"
+      "sha256": "dc7b078fa523a23111598b1a29a5acdc27f04ff884d424ef19bdf0420503cc7c"
     },
     "vision_model": {
-      "bytes": 220970424,
+      "bytes": 74817136,
       "path": "models/densenet201.h5",
-      "sha256": "81a4ec243781885a6a835bbd94392cd391ed6b7d8274e732911330cff33afbf4"
+      "sha256": "854a2451acf4df828092ab75bebff01cbc48361c862557415d589ca477d775cf"
     }
   },
   "associations": {
-    "evaluation_manifest_sha256": "4c1529096671c1ae184a39858e1fe4c2b9cc8a855f1b6f1eb41f3a984ae53424",
-    "evaluation_report_sha256": "cc48fea9b37cd67597fa5ddf9c81cc3011406005ae99af7a80c305a1a85be4ae",
+    "evaluation_manifest_sha256": "9866dfc60c25747b431c19e8fc0ec375f208c3cc60cf1e2e3710be3600db27d2",
+    "evaluation_report_sha256": "35c284ee667d65a1a563ede473e0f1abfc6ae8603c2f96aa46b2ae81532bc983",
     "gate_schema_version": 2,
-    "gate_sha256": "62cd980b713cf868fc9a1d4b8a26b36938887fd7b9340934cab6faa8c944c144",
-    "model_sha256": "81a4ec243781885a6a835bbd94392cd391ed6b7d8274e732911330cff33afbf4"
+    "gate_sha256": "dc7b078fa523a23111598b1a29a5acdc27f04ff884d424ef19bdf0420503cc7c",
+    "model_sha256": "854a2451acf4df828092ab75bebff01cbc48361c862557415d589ca477d775cf"
   },
   "class_order": [
     "freshapples",
     "freshbanana",
     "freshoranges",
+    "freshmango",
+    "freshtomato",
+    "freshpear",
     "rottenapples",
     "rottenbanana",
-    "rottenoranges"
+    "rottenoranges",
+    "rottenmango",
+    "rottentomato",
+    "rottenpear"
   ],
   "evaluation_summary": {
-    "coverage": 0.9647577092511013,
-    "mean_latency_seconds": 0.016915822192420767,
-    "median_latency_seconds": 0.014882512500207667,
-    "overall_accuracy_including_withheld": 0.9647577092511013,
-    "p95_latency_seconds": 0.050924191525663735,
-    "rotten_images": 1161,
-    "rotten_to_fresh_errors": 0,
-    "rotten_to_fresh_rate": 0.0,
-    "selective_accuracy_when_accepted": 1.0,
-    "supported_accepted": 1971,
-    "supported_images": 2043,
-    "supported_withheld": 72,
-    "unsupported_accepted": 11,
-    "unsupported_false_acceptance_rate": 0.057291666666666664,
+    "coverage": 0.8867177838238931,
+    "mean_latency_seconds": 0.009767191932467518,
+    "median_latency_seconds": 0.0018397984531244305,
+    "overall_accuracy_including_withheld": 0.8792975513232748,
+    "p95_latency_seconds": 0.002072769781250372,
+    "rotten_images": 2158,
+    "rotten_to_fresh_errors": 19,
+    "rotten_to_fresh_rate": 0.008804448563484708,
+    "selective_accuracy_when_accepted": 0.9916317991631799,
+    "supported_accepted": 3585,
+    "supported_images": 4043,
+    "supported_withheld": 458,
+    "unsupported_accepted": 0,
+    "unsupported_false_acceptance_rate": 0.0,
     "unsupported_images": 192
   },
   "evaluation_validity": {
     "independent_real_world_benchmark": false,
-    "legacy_train_test_source_overlap": 1310,
-    "warning": "The current model was trained before the leakage-free grouped manifest existed. These results validate software behavior, not independent real-world accuracy."
+    "legacy_train_test_source_overlap": null,
+    "warning": "This benchmark uses existing public/source exports and is not an independent real-world store benchmark. Report metrics as development results."
   },
   "fruit_order": [
     "apple",
     "banana",
-    "orange"
+    "orange",
+    "mango",
+    "tomato",
+    "pear"
   ],
-  "generated_at_utc": "2026-07-18T08:36:14.978474+00:00",
+  "generated_at_utc": "2026-07-20T04:43:38.475576+00:00",
   "schema_version": 1
 }

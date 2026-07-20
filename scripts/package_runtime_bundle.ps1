@@ -22,9 +22,9 @@ $paths = @(
     "data\fruit_catalog.json",
     "data\food_knowledge_base.json",
     "artifacts\model_manifest.json",
-    "evaluation\manifests\legacy_grouped_v1.json",
-    "evaluation\reports\current_model\evaluation_report.json",
-    "evaluation\reports\gate_calibration_final.json"
+    "evaluation\manifests\expanded_12_class_v1.json",
+    "evaluation\reports\expanded_12_class\gated_test\evaluation_report.json",
+    "evaluation\reports\expanded_12_class\open_set_calibration.json"
 )
 foreach ($relative in $paths) {
     $source = Join-Path $projectRoot $relative

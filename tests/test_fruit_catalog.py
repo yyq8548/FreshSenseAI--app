@@ -34,9 +34,15 @@ def test_default_catalog_preserves_trained_model_order():
         "freshapples",
         "freshbanana",
         "freshoranges",
+        "freshmango",
+        "freshtomato",
+        "freshpear",
         "rottenapples",
         "rottenbanana",
         "rottenoranges",
+        "rottenmango",
+        "rottentomato",
+        "rottenpear",
     )
     assert catalog.display_name_for_label("rottenbanana") == "Rotten Banana"
 

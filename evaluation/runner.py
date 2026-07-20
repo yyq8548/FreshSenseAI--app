@@ -135,8 +135,11 @@ def run_evaluation(
             "warning": (
                 None
                 if independent
-                else "The current model was trained before the leakage-free grouped manifest existed. "
-                "These results validate software behavior, not independent real-world accuracy."
+                else str(
+                    legacy_summary.get("validity_warning")
+                    or "This grouped development benchmark is not an independently photographed "
+                    "real-world store benchmark."
+                )
             ),
         },
         "metrics": metrics,

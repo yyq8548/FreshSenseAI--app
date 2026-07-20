@@ -1,0 +1,279 @@
+{
+  "schema_version": 1,
+  "created_at_utc": "2026-07-20T04:08:10.394782+00:00",
+  "architecture": "ImageNet DenseNet201 frozen backbone plus 12-class linear head",
+  "model_path": "densenet201-imagenet-expanded.h5",
+  "model_sha256": "854a2451acf4df828092ab75bebff01cbc48361c862557415d589ca477d775cf",
+  "manifest_sha256": "9866dfc60c25747b431c19e8fc0ec375f208c3cc60cf1e2e3710be3600db27d2",
+  "class_order": [
+    "freshapples",
+    "freshbanana",
+    "freshoranges",
+    "freshmango",
+    "freshtomato",
+    "freshpear",
+    "rottenapples",
+    "rottenbanana",
+    "rottenoranges",
+    "rottenmango",
+    "rottentomato",
+    "rottenpear"
+  ],
+  "feature_extraction_seconds": 155.685426409,
+  "epochs_completed": 44,
+  "best_validation_accuracy": 0.9788872599601746,
+  "test_metrics": {
+    "images": 4043,
+    "accuracy": 0.9854068760821172,
+    "macro_f1": 0.9871883535081153,
+    "mean_confidence": 0.9854560640596559,
+    "rotten_images": 2158,
+    "rotten_to_fresh_errors": 27,
+    "rotten_to_fresh_rate": 0.012511584800741427,
+    "per_class": {
+      "freshapples": {
+        "support": 324,
+        "precision": 0.9725609756097561,
+        "recall": 0.9845679012345679,
+        "f1": 0.9785276073619632
+      },
+      "freshbanana": {
+        "support": 305,
+        "precision": 1.0,
+        "recall": 0.9967213114754099,
+        "f1": 0.9983579638752053
+      },
+      "freshoranges": {
+        "support": 207,
+        "precision": 0.9857142857142858,
+        "recall": 1.0,
+        "f1": 0.9928057553956835
+      },
+      "freshmango": {
+        "support": 418,
+        "precision": 0.9786223277909739,
+        "recall": 0.9856459330143541,
+        "f1": 0.9821215733015494
+      },
+      "freshtomato": {
+        "support": 478,
+        "precision": 0.9752577319587629,
+        "recall": 0.9895397489539749,
+        "f1": 0.9823468328141225
+      },
+      "freshpear": {
+        "support": 153,
+        "precision": 0.9935064935064936,
+        "recall": 1.0,
+        "f1": 0.9967426710097721
+      },
+      "rottenapples": {
+        "support": 414,
+        "precision": 0.9854368932038835,
+        "recall": 0.9806763285024155,
+        "f1": 0.9830508474576272
+      },
+      "rottenbanana": {
+        "support": 450,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "rottenoranges": {
+        "support": 332,
+        "precision": 1.0,
+        "recall": 0.9819277108433735,
+        "f1": 0.9908814589665653
+      },
+      "rottenmango": {
+        "support": 438,
+        "precision": 0.977116704805492,
+        "recall": 0.9748858447488584,
+        "f1": 0.9760000000000001
+      },
+      "rottentomato": {
+        "support": 380,
+        "precision": 0.9758064516129032,
+        "recall": 0.9552631578947368,
+        "f1": 0.9654255319148936
+      },
+      "rottenpear": {
+        "support": 144,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        319,
+        0,
+        0,
+        0,
+        3,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        304,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        207,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        412,
+        0,
+        1,
+        0,
+        0,
+        0,
+        3,
+        1,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        473,
+        0,
+        0,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        153,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        8,
+        0,
+        0,
+        0,
+        0,
+        0,
+        406,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        450,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        3,
+        0,
+        326,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        427,
+        4,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        1,
+        9,
+        0,
+        1,
+        0,
+        0,
+        6,
+        363,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        144
+      ]
+    ]
+  },
+  "validity_warning": "Metrics use curated/source-export data, not an independently photographed store benchmark. The model must abstain on unsupported inputs and remain advisory."
+}

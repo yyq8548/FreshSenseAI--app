@@ -1,0 +1,147 @@
+{
+  "artifact": "open_set_gate-expanded.npz",
+  "artifact_sha256": "dc7b078fa523a23111598b1a29a5acdc27f04ff884d424ef19bdf0420503cc7c",
+  "created_at_utc": "2026-07-20T04:28:15.405742+00:00",
+  "feature_extraction_seconds": {
+    "synthetic_ood": 0.502,
+    "train": 153.44,
+    "validation": 39.578
+  },
+  "feature_layer": "avg_pool",
+  "feature_size": 1920,
+  "manifest_sha256": "9866dfc60c25747b431c19e8fc0ec375f208c3cc60cf1e2e3710be3600db27d2",
+  "minimum_final_supported_coverage": 0.9,
+  "minimum_supported_coverage": 0.95,
+  "model_sha256": "854a2451acf4df828092ab75bebff01cbc48361c862557415d589ca477d775cf",
+  "prototype_calibration": {
+    "freshapples": {
+      "coverage_cap_threshold": 0.7381734848022461,
+      "final_validation_coverage": 0.9477611940298507,
+      "nearest_centroid_agreement": 0.9402985074626866,
+      "own_centroid_coverage": 0.9477611940298507,
+      "supported_only_threshold": 0.7073773145675659,
+      "synthetic_ood_threshold": 0.5516635775566101,
+      "threshold": 0.7073773145675659,
+      "validation_images": 268
+    },
+    "freshbanana": {
+      "coverage_cap_threshold": 0.7187105417251587,
+      "final_validation_coverage": 0.9494949494949495,
+      "nearest_centroid_agreement": 0.9747474747474747,
+      "own_centroid_coverage": 0.9494949494949495,
+      "supported_only_threshold": 0.7056055068969727,
+      "synthetic_ood_threshold": 0.42312854528427124,
+      "threshold": 0.7056055068969727,
+      "validation_images": 198
+    },
+    "freshmango": {
+      "coverage_cap_threshold": 0.6739235520362854,
+      "final_validation_coverage": 0.9488372093023256,
+      "nearest_centroid_agreement": 0.8302325581395349,
+      "own_centroid_coverage": 0.9488372093023256,
+      "supported_only_threshold": 0.6473837494850159,
+      "synthetic_ood_threshold": 0.5694245100021362,
+      "threshold": 0.6473837494850159,
+      "validation_images": 430
+    },
+    "freshoranges": {
+      "coverage_cap_threshold": 0.7200316786766052,
+      "final_validation_coverage": 0.9480874316939891,
+      "nearest_centroid_agreement": 0.860655737704918,
+      "own_centroid_coverage": 0.9480874316939891,
+      "supported_only_threshold": 0.6597948670387268,
+      "synthetic_ood_threshold": 0.4034407138824463,
+      "threshold": 0.6597948670387268,
+      "validation_images": 366
+    },
+    "freshpear": {
+      "coverage_cap_threshold": 0.7061419486999512,
+      "final_validation_coverage": 0.9487179487179487,
+      "nearest_centroid_agreement": 0.9358974358974359,
+      "own_centroid_coverage": 0.9487179487179487,
+      "supported_only_threshold": 0.6957236528396606,
+      "synthetic_ood_threshold": -1.0,
+      "threshold": 0.6957236528396606,
+      "validation_images": 156
+    },
+    "freshtomato": {
+      "coverage_cap_threshold": 0.701360285282135,
+      "final_validation_coverage": 0.9487704918032787,
+      "nearest_centroid_agreement": 0.8811475409836066,
+      "own_centroid_coverage": 0.9487704918032787,
+      "supported_only_threshold": 0.6811777949333191,
+      "synthetic_ood_threshold": 0.43824300169944763,
+      "threshold": 0.6811777949333191,
+      "validation_images": 488
+    },
+    "rottenapples": {
+      "coverage_cap_threshold": 0.7148308753967285,
+      "final_validation_coverage": 0.948559670781893,
+      "nearest_centroid_agreement": 0.8436213991769548,
+      "own_centroid_coverage": 0.948559670781893,
+      "supported_only_threshold": 0.6965569257736206,
+      "synthetic_ood_threshold": 0.580337405204773,
+      "threshold": 0.6965569257736206,
+      "validation_images": 486
+    },
+    "rottenbanana": {
+      "coverage_cap_threshold": 0.6722939014434814,
+      "final_validation_coverage": 0.9481481481481482,
+      "nearest_centroid_agreement": 0.9111111111111111,
+      "own_centroid_coverage": 0.9481481481481482,
+      "supported_only_threshold": 0.6591790914535522,
+      "synthetic_ood_threshold": 0.567476749420166,
+      "threshold": 0.6591790914535522,
+      "validation_images": 405
+    },
+    "rottenmango": {
+      "coverage_cap_threshold": 0.6851058006286621,
+      "final_validation_coverage": 0.948051948051948,
+      "nearest_centroid_agreement": 0.8909090909090909,
+      "own_centroid_coverage": 0.948051948051948,
+      "supported_only_threshold": 0.6613559126853943,
+      "synthetic_ood_threshold": 0.3915454149246216,
+      "threshold": 0.6613559126853943,
+      "validation_images": 385
+    },
+    "rottenoranges": {
+      "coverage_cap_threshold": 0.74791020154953,
+      "final_validation_coverage": 0.9492063492063492,
+      "nearest_centroid_agreement": 0.8952380952380953,
+      "own_centroid_coverage": 0.9492063492063492,
+      "supported_only_threshold": 0.7130588293075562,
+      "synthetic_ood_threshold": 0.5667771697044373,
+      "threshold": 0.7130588293075562,
+      "validation_images": 315
+    },
+    "rottenpear": {
+      "coverage_cap_threshold": 0.7709482908248901,
+      "final_validation_coverage": 0.9477124183006536,
+      "nearest_centroid_agreement": 0.9673202614379085,
+      "own_centroid_coverage": 0.9477124183006536,
+      "supported_only_threshold": 0.7494115233421326,
+      "synthetic_ood_threshold": -1.0,
+      "threshold": 0.7494115233421326,
+      "validation_images": 153
+    },
+    "rottentomato": {
+      "coverage_cap_threshold": 0.6583666801452637,
+      "final_validation_coverage": 0.949468085106383,
+      "nearest_centroid_agreement": 0.675531914893617,
+      "own_centroid_coverage": 0.949468085106383,
+      "supported_only_threshold": 0.638018012046814,
+      "synthetic_ood_threshold": 0.43148550391197205,
+      "threshold": 0.638018012046814,
+      "validation_images": 376
+    }
+  },
+  "schema_version": 2,
+  "synthetic_calibration_seed": 20260716,
+  "synthetic_ood_false_acceptance_rate": 0.0,
+  "synthetic_ood_images": 192,
+  "synthetic_rejection_quantile": 0.99,
+  "validation_gate_coverage": 0.9696969696969697,
+  "validation_images": 4026,
+  "validation_nearest_centroid_agreement": 0.8691008445106806,
+  "validity_warning": "This gate was calibrated on freshsense_expanded_12_class_v1, not an independently photographed real-world store benchmark. Recalibrate it after representative unsupported-image and store-pilot data are collected."
+}
