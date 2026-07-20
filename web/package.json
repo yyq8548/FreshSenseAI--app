@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "demo:sync": "node scripts/sync-demo-media.mjs",
+    "prebuild": "npm run demo:sync",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty false",
