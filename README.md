@@ -80,7 +80,13 @@ FreshSense stores the result, location, batch reference, note, review status,
 and timestamps. It does not write uploaded image bytes or filenames to the
 workspace database.
 
-[Watch the 30-second Windows beta walkthrough](docs/demo/freshsense-public-beta-demo.mp4)
+[Watch the 60-second FreshSense product and AI workflow demo](docs/demo/freshsense-recruiter-demo-60s.mp4)
+
+The video follows one inspection from batch upload through computer vision,
+Agent follow-up, human review, Manager Chat, and the daily quality report.
+[SHA-256 checksum](docs/demo/freshsense-recruiter-demo-60s.mp4.sha256) and
+[media manifest](docs/demo/freshsense-recruiter-demo-60s.json) are included for
+artifact verification.
 
 ## Technology and AI
 

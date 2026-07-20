@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "artifact": "freshsense-recruiter-demo-60s.mp4",
+  "sha256": "a69e3e3aca14813c46b00a92d625bce174d8d7ea6baccc49fed03b9c841d69e0",
+  "sizeBytes": 13200429,
+  "durationSeconds": 60.053333,
+  "video": {
+    "codec": "h264",
+    "width": 1920,
+    "height": 1080,
+    "fps": "30/1",
+    "pixelFormat": "yuv420p"
+  },
+  "audio": {
+    "codec": "aac",
+    "sampleRateHz": 48000,
+    "channels": 2
+  }
+}

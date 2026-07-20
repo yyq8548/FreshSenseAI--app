@@ -14,7 +14,8 @@
     "studio": "npm run assets && remotion studio src/index.ts",
     "render:stills": "npm run assets && tsx scripts/render-stills.ts",
     "render": "npm run assets && remotion render src/index.ts FreshSenseRecruiterDemo ../docs/demo/freshsense-recruiter-demo-60s.mp4 --codec=h264 --pixel-format=yuv420p --image-format=png --color-space=bt709 --overwrite",
-    "verify": "tsx scripts/verify-output.ts"
+    "verify": "tsx scripts/verify-output.ts",
+    "package:demo": "tsx scripts/package-output.ts"
   },
   "dependencies": {
     "@remotion/captions": "4.0.495",
