@@ -17,6 +17,13 @@ MIGRATION_TABLES: tuple[str, ...] = (
     "inspections",
     "review_events",
     "workspace_invitations",
+    "agent_runs",
+    "agent_steps",
+    "action_proposals",
+    "workflow_tasks",
+    "notifications",
+    "approval_requests",
+    "agent_memory",
 )
 
 

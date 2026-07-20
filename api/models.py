@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -216,6 +216,8 @@ class InspectionResponse(ApiModel):
 class InspectionAnalyzeResponse(ApiModel):
     inspection: InspectionResponse
     analysis: AnalyzeResponse
+    workflow_status: Literal["completed", "failed"] = "completed"
+    agent_run_id: str | None = None
 
 
 class InspectionListResponse(ApiModel):
@@ -239,3 +241,161 @@ class DashboardResponse(ApiModel):
     review_status_counts: dict[str, int]
     fruit_counts: dict[str, int]
     decision_counts: dict[str, int]
+
+
+class AgentRunCreateRequest(ApiModel):
+    inspection_id: str = Field(min_length=1, max_length=64)
+
+
+class AgentStepResponse(ApiModel):
+    step_id: str
+    run_id: str
+    step_index: int = Field(ge=1, le=20)
+    step_kind: Literal["tool", "finish"]
+    tool_name: str | None
+    rationale: str
+    input: dict[str, Any]
+    output: dict[str, Any]
+    status: Literal["completed", "failed"]
+    created_at_utc: str
+
+
+class AgentActionProposalResponse(ApiModel):
+    proposal_id: str
+    run_id: str
+    inspection_id: str
+    action_type: Literal[
+        "complete_without_action",
+        "request_retake",
+        "create_review_task",
+        "notify_manager",
+        "hold_batch",
+        "discard_inventory",
+        "declare_food_safe",
+    ]
+    policy_decision: Literal["automatic", "approval_required", "prohibited"]
+    execution_status: Literal[
+        "pending",
+        "shadow_only",
+        "executed",
+        "awaiting_approval",
+        "blocked",
+        "failed",
+    ]
+    rationale: str
+    payload: dict[str, Any]
+    created_at_utc: str
+    resolved_at_utc: str | None
+
+
+class AgentRunResponse(ApiModel):
+    run_id: str
+    inspection_id: str
+    mode: Literal["shadow", "supervised"]
+    objective: str
+    planner_version: str
+    status: Literal["running", "completed", "failed", "cancelled"]
+    max_steps: int = Field(ge=1, le=20)
+    steps_completed: int = Field(ge=0, le=20)
+    final_summary: str
+    error_code: str | None
+    created_at_utc: str
+    completed_at_utc: str | None
+    steps: list[AgentStepResponse]
+    action_proposals: list[AgentActionProposalResponse]
+
+
+class AgentRunListResponse(ApiModel):
+    runs: list[AgentRunResponse]
+    count: int = Field(ge=0)
+
+
+class WorkflowTaskResponse(ApiModel):
+    task_id: str
+    inspection_id: str
+    run_id: str
+    task_type: str
+    status: Literal["open", "completed", "cancelled"]
+    priority: Literal["normal", "high", "urgent"]
+    title: str
+    instructions: str
+    assigned_role: Literal["manager", "inspector", "reviewer"]
+    created_at_utc: str
+    completed_at_utc: str | None
+
+
+class WorkflowTaskListResponse(ApiModel):
+    tasks: list[WorkflowTaskResponse]
+    count: int = Field(ge=0)
+
+
+class NotificationResponse(ApiModel):
+    notification_id: str
+    recipient_role: Literal["manager", "inspector", "reviewer", "all"]
+    kind: str
+    title: str
+    message: str
+    related_type: str
+    related_id: str
+    created_at_utc: str
+    read_at_utc: str | None
+
+
+class NotificationListResponse(ApiModel):
+    notifications: list[NotificationResponse]
+    unread_count: int = Field(ge=0)
+
+
+class ApprovalResponse(ApiModel):
+    approval_id: str
+    inspection_id: str
+    run_id: str
+    action_type: Literal["hold_batch"]
+    status: Literal["pending", "approved", "rejected"]
+    rationale: str
+    payload: dict[str, Any]
+    requested_at_utc: str
+    resolved_at_utc: str | None
+    resolution_note: str
+
+
+class ApprovalListResponse(ApiModel):
+    approvals: list[ApprovalResponse]
+    count: int = Field(ge=0)
+
+
+class ApprovalResolveRequest(ApiModel):
+    decision: Literal["approved", "rejected"]
+    note: str = Field(default="", max_length=1000)
+
+
+class AgentMemoryResponse(ApiModel):
+    memory_id: str
+    inspection_id: str
+    memory_kind: Literal["human_review"]
+    fruit: str | None
+    location_name: str
+    batch_reference: str
+    predicted_outcome: str | None
+    reviewed_outcome: str | None
+    content: dict[str, Any]
+    created_at_utc: str
+
+
+class AgentMemoryListResponse(ApiModel):
+    memories: list[AgentMemoryResponse]
+    count: int = Field(ge=0)
+
+
+class DailyQualityReportResponse(ApiModel):
+    report_date: str
+    total_inspections: int = Field(ge=0)
+    rotten_flags: int = Field(ge=0)
+    uncertain_or_retake: int = Field(ge=0)
+    reviewed: int = Field(ge=0)
+    corrections: int = Field(ge=0)
+    open_tasks: int = Field(ge=0)
+    pending_approvals: int = Field(ge=0)
+    fruit_counts: dict[str, int]
+    summary: str
+    generated_at_utc: str

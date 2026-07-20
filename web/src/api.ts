@@ -1,15 +1,19 @@
 import type { RuntimeConfig } from "./config";
 import type {
   AnalyzeResult,
+  Approval,
   AuthenticatedUser,
   Dashboard,
+  DailyQualityReport,
   Inspection,
   InspectionList,
+  NotificationItem,
   ReviewedOutcome,
   ReviewStatus,
   Workspace,
   WorkspaceInvitation,
   WorkspaceRole,
+  WorkflowTask,
 } from "./types";
 
 type TokenProvider = () => Promise<string>;
@@ -44,6 +48,47 @@ export class FreshSenseApi {
 
   inspections() {
     return this.request<InspectionList>("/api/v1/inspections?limit=200");
+  }
+
+  workflowTasks() {
+    return this.request<{ tasks: WorkflowTask[]; count: number }>(
+      "/api/v1/workflow/tasks?status=open",
+    );
+  }
+
+  notifications() {
+    return this.request<{ notifications: NotificationItem[]; unread_count: number }>(
+      "/api/v1/notifications",
+    );
+  }
+
+  markNotificationRead(notificationId: string) {
+    return this.request<NotificationItem>(
+      `/api/v1/notifications/${encodeURIComponent(notificationId)}/read`,
+      { method: "POST" },
+    );
+  }
+
+  approvals() {
+    return this.request<{ approvals: Approval[]; count: number }>(
+      "/api/v1/approvals?status=pending",
+    );
+  }
+
+  resolveApproval(
+    approvalId: string,
+    decision: "approved" | "rejected",
+    note: string,
+  ) {
+    return this.request<Approval>(
+      `/api/v1/approvals/${encodeURIComponent(approvalId)}`,
+      { method: "PATCH", body: JSON.stringify({ decision, note }) },
+    );
+  }
+
+  dailyReport(reportDate?: string) {
+    const query = reportDate ? `?report_date=${encodeURIComponent(reportDate)}` : "";
+    return this.request<DailyQualityReport>(`/api/v1/reports/daily${query}`);
   }
 
   analyze(input: {

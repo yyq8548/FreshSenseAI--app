@@ -1,3 +1,5 @@
+from hashlib import sha256
+
 from fastapi.testclient import TestClient
 
 from api.app import create_app
@@ -119,5 +121,109 @@ def test_openapi_documents_workspace_inspection_and_review_contracts(tmp_path):
     assert "/api/v1/inspections" in schema["paths"]
     assert "/api/v1/inspections/analyze" in schema["paths"]
     assert "/api/v1/inspections/{inspection_id}/review" in schema["paths"]
+    assert "/api/v1/agent/runs" in schema["paths"]
+    assert "/api/v1/agent/runs/{run_id}" in schema["paths"]
+    assert "/api/v1/workflow/tasks" in schema["paths"]
+    assert "/api/v1/notifications" in schema["paths"]
+    assert "/api/v1/approvals" in schema["paths"]
+    assert "/api/v1/reports/daily" in schema["paths"]
     create_operation = schema["paths"]["/api/v1/inspections/analyze"]["post"]
     assert "multipart/form-data" in create_operation["requestBody"]["content"]
+
+
+def test_shadow_agent_api_records_an_audited_proposal(tmp_path):
+    app = _app(tmp_path)
+    headers = {"X-API-Key": API_KEY}
+    with TestClient(app) as client:
+        created = client.post(
+            "/api/v1/inspections/analyze",
+            headers=headers,
+            files=_upload(_image_bytes()),
+        )
+        inspection_id = created.json()["inspection"]["inspection_id"]
+        started = client.post(
+            "/api/v1/agent/runs",
+            headers=headers,
+            json={"inspection_id": inspection_id},
+        )
+        run_id = started.json()["run_id"]
+        fetched = client.get(f"/api/v1/agent/runs/{run_id}", headers=headers)
+        listed = client.get("/api/v1/agent/runs", headers=headers)
+
+    assert started.status_code == 200
+    assert started.json()["status"] == "completed"
+    assert started.json()["mode"] == "shadow"
+    assert started.json()["steps_completed"] == 5
+    assert started.json()["action_proposals"][0]["execution_status"] == "shadow_only"
+    assert fetched.status_code == 200
+    assert listed.json()["count"] == 2
+
+
+def test_supervised_workflow_api_exposes_notifications_memory_report_and_approval(tmp_path):
+    app = _app(tmp_path)
+    headers = {"X-API-Key": API_KEY}
+    identity = sha256(f"api-key:{API_KEY}".encode("utf-8")).hexdigest()
+    with TestClient(app) as client:
+        created = client.post(
+            "/api/v1/inspections/analyze",
+            headers=headers,
+            files=_upload(_image_bytes()),
+        )
+        inspection_id = created.json()["inspection"]["inspection_id"]
+        notifications = client.get("/api/v1/notifications", headers=headers)
+        report = client.get("/api/v1/reports/daily", headers=headers)
+        client.patch(
+            f"/api/v1/inspections/{inspection_id}/review",
+            headers=headers,
+            json={
+                "review_status": "confirmed",
+                "reviewed_outcome": "fresh",
+                "note": "Staff confirmed the visible condition.",
+            },
+        )
+        memory = client.get("/api/v1/agent/memory", headers=headers)
+
+        rotten = app.state.saas_store.record_inspection(
+            identity_hash=identity,
+            location_name="Produce receiving",
+            batch_reference="PO-ROTTEN",
+            operator_note="Approval API test",
+            analysis={
+                "decision": "accept_prediction",
+                "status": "completed",
+                "prediction": {
+                    "class_name": "rottenbanana",
+                    "display_name": "Rotten Banana",
+                    "fruit": "banana",
+                    "freshness": "rotten",
+                    "confidence": 0.94,
+                },
+                "reasoning": {"risk_level": "high"},
+                "warnings": [],
+                "recommendation": "Inspect the physical batch.",
+                "safety_notice": "Decision support only.",
+            },
+            model_version="test",
+        )
+        app.state.autonomous_agent.run(
+            identity_hash=identity,
+            inspection_id=rotten["inspection_id"],
+            mode="supervised",
+        )
+        approvals = client.get("/api/v1/approvals?status=pending", headers=headers)
+        approval_id = approvals.json()["approvals"][0]["approval_id"]
+        resolved = client.patch(
+            f"/api/v1/approvals/{approval_id}",
+            headers=headers,
+            json={"decision": "approved", "note": "Physical check completed."},
+        )
+        tasks = client.get("/api/v1/workflow/tasks?status=open", headers=headers)
+
+    assert created.json()["workflow_status"] == "completed"
+    assert created.json()["agent_run_id"]
+    assert notifications.json()["unread_count"] >= 1
+    assert report.json()["total_inspections"] == 1
+    assert memory.json()["count"] == 1
+    assert approvals.json()["count"] == 1
+    assert resolved.json()["status"] == "approved"
+    assert tasks.json()["tasks"][0]["task_type"] == "approved_hold_batch"
