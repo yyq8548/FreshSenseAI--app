@@ -82,9 +82,11 @@ review the displayed monthly estimate for each resource.
    trust and DNS configuration support full certificate verification.
 4. Create Azure Static Web Apps from the `web/` directory. Build with
    `pnpm install --frozen-lockfile` and `pnpm build`; publish `web/dist`.
-5. Supply the five `VITE_*` values from `web/.env.production.example` during the
-   frontend build. They are public application identifiers and URLs, not client
-   secrets.
+   The committed `web/.env.production` supplies the public API and Microsoft
+   Entra SPA configuration. Keep local-only overrides in `web/.env.local`.
+5. For a different Azure environment, replace the five `VITE_*` values using
+   `web/.env.production.example` as the template. They are public application
+   identifiers and URLs, not client secrets.
 
 The App Service source deployment must retain the repository root because Oryx
 installs the root `requirements.txt`. Enable build automation with
