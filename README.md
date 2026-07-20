@@ -1,23 +1,99 @@
 # FreshSense AI
 
-FreshSense is a Windows-first AI decision-support application that explains
-visible freshness patterns in apples, bananas, and oranges. It combines a
-DenseNet201 image classifier, supported-input and confidence gates, Grad-CAM,
-local semantic RAG, optional GPT-5 reasoning, and reviewed fallback guidance.
+FreshSense is a browser-based fruit inspection workbench for small grocery
+stores and produce teams. Staff can check an incoming delivery or shelf batch
+with one representative fruit photo, record where the check happened, and send
+the result to a teammate for review. The current beta supports apples, bananas,
+and oranges.
+
+[Product overview](#product-overview) | [How to use FreshSense](#how-to-use-freshsense) | [Technology and AI](#technology-and-ai)
+
+**Live beta:** [freshsenseai.com](https://freshsenseai.com/)
 
 [![Download FreshSense AI for Windows](https://img.shields.io/badge/Download-Windows%20Public%20Beta-294D31?style=for-the-badge&logo=windows)](https://github.com/yyq8548/FreshSenseAI--app/releases/download/v0.5.1/FreshSenseAI-Setup-0.5.1.exe)
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-2.19-orange)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.139-009688)
-![Tests](https://img.shields.io/badge/tests-129%20automated-brightgreen)
+![Tests](https://img.shields.io/badge/tests-149%20automated-brightgreen)
 ![Release](https://img.shields.io/badge/release-0.5.1%20Public%20Beta-blueviolet)
+
+## Product overview
+
+Small grocery stores often inspect fruit by sight, then keep the result in
+memory or on paper. FreshSense gives that routine a shared record. For each
+delivery, display, or shelf batch, a staff member photographs one representative
+fruit, adds a location and batch reference, and runs the analysis. FreshSense
+checks the visible condition, withholds labels it cannot support, and saves the
+result without retaining the uploaded photo.
+
+The workspace is built around human review. An inspector can record checks while
+a reviewer confirms the result, corrects it, or dismisses it. Managers can see
+inspection volume, pending reviews, review coverage, and false-fresh corrections
+across the store. They can also invite team members with separate inspector and
+reviewer roles.
+
+FreshSense is decision support, not a food-safety test. It can flag visible
+patterns associated with fresh or rotten fruit, but it cannot detect internal
+spoilage, contamination, pathogens, odor, texture, or chemical hazards. Staff
+should still inspect the fruit directly and follow the store's food-safety
+procedures.
+
+## How to use FreshSense
+
+1. Open [freshsenseai.com](https://freshsenseai.com/) and sign in through the
+   Microsoft-hosted identity page. The first manager account opens a workspace;
+   managers can create one-time invitation links for inspectors and reviewers.
+2. Choose **New inspection** in the workbench.
+3. Take or select a clear photo of one apple, banana, or orange. Keep one fruit
+   type in frame, move close enough to show the surface, and use even lighting.
+4. Enter the store location. Add a batch reference or operator note when that
+   information is available.
+5. Select **Analyze and record**. FreshSense returns a fresh, rotten, uncertain,
+   unsupported, or retake result. Routine scans use the fast inference path.
+6. Check the fruit yourself before accepting the result. A reviewer can open
+   **Review queue**, record the observed outcome, and save a correction when the
+   model is wrong.
+7. Repeat the process for the next batch. The **Overview** page tracks inspection
+   counts and review progress for the workspace.
+
+Uploaded photos are processed in memory and are not stored by default. The
+workspace keeps the inspection result, location, batch reference, operator note,
+review status, and timestamps.
+
+## Technology and AI
+
+The web client uses React, TypeScript, and Fluent UI. Azure Static Web Apps hosts
+the client at `freshsenseai.com`. A versioned FastAPI service runs on Azure App
+Service, Microsoft Entra External ID handles customer authentication, and
+PostgreSQL stores workspace metadata and review records. The API checks tenant,
+audience, scope, workspace, and role before it accepts a request.
+
+The vision model is a TensorFlow DenseNet201 classifier trained on six classes:
+fresh and rotten apples, bananas, and oranges. A supported-input gate checks
+whether the photo clearly resembles one supported fruit before the application
+shows a freshness label. Image-quality checks and confidence thresholds can
+return unsupported, uncertain, or retake guidance instead of forcing a result.
+Grad-CAM is available as an optional influence view for accepted predictions.
+
+FreshSense also has local semantic retrieval. FastEmbed encodes a curated fruit
+knowledge base and retrieves relevant storage, shelf-life, spoilage, and safety
+guidance. GPT-5 can use the prediction and retrieved text to write a detailed
+explanation when that option is enabled. Routine store inspections do not wait
+for an LLM call; they use reviewed rule-based guidance to keep response time
+short. The uploaded photo is not sent to GPT-5.
+
+The hosted fast path resizes large phone photos in the browser, keeps the model
+worker warm, and skips Grad-CAM and remote reasoning unless requested. One recent
+warm-service test completed the signed-in browser flow in about 2.36 seconds,
+including compression, upload, authentication, inference, and metadata storage.
+That measurement is a development check, not a production latency guarantee.
 
 ![FreshSense AI redesigned Windows application](docs/images/freshsense-desktop-overview.png)
 
 [Watch the 30-second beta walkthrough](docs/demo/freshsense-public-beta-demo.mp4)
 
-## Try it in three steps
+## Windows desktop beta
 
 1. Download `FreshSenseAI-Setup-0.5.1.exe` from the latest GitHub Release and
    compare its SHA-256 with the published checksum.
@@ -81,13 +157,14 @@ The trained Keras model is the source of the visual prediction. FreshSense does
 not generate a placeholder or random prediction if that model is missing or
 invalid. Startup validation fails closed instead.
 
-The application is available through three interfaces:
+The application is available through four interfaces:
 
 | Interface | Intended use | Entry point |
 | --- | --- | --- |
 | Windows desktop | Normal end-user scanning with local history | `desktop_app.py` |
 | Streamlit web UI | Local development and demonstrations | `app.py` |
 | Versioned REST API | Automation and future client integrations | `api.main:app` |
+| Authenticated team workbench | Local SaaS workflow validation with Entra External ID | `web/` |
 
 The desktop application runs without Docker and does not require the REST API.
 A packaged Windows installer can include Python, the vision model, the knowledge
@@ -146,9 +223,23 @@ flowchart TD
   unavailable.
 - **Bounded explainability:** Grad-CAM is generated only for accepted model
   classes and is presented as influence, never proof of spoilage.
+- **Low-latency inspection path:** the hosted API skips Grad-CAM and remote LLM
+  calls during routine scans, warms the model once in the background, and keeps
+  the Azure worker active. Detailed explainability remains an explicit opt-in.
 - **No required cloud backend:** only optional GPT-5 reasoning sends a text
   payload to the OpenAI API. The image itself is not sent to OpenAI by this
   application.
+
+### Response-time design
+
+Routine SaaS inspections use a dedicated fast path: phone photos are resized to
+a maximum 1024px edge in the browser, inference uses deterministic local
+reasoning, and Grad-CAM is omitted unless requested. On the development Windows
+machine, repeated warm-model inference measured approximately 0.12–0.14 seconds
+(network and browser upload excluded), compared with about 1.05 seconds before
+removing per-request Grad-CAM. Azure startup now exposes health immediately while
+the model and workspace store initialize in the background; routine analysis is
+enabled only after the model reports ready.
 
 ## Implemented features
 
@@ -172,6 +263,10 @@ flowchart TD
 | Local scan history | Implemented | Stores up to 200 metadata-only records and supports CSV export and clearing |
 | REST API | Implemented | Health, analysis, metrics, OpenAPI documentation, validation, and structured errors |
 | API hardening | Implemented | Optional API key, rate limiting, trusted hosts, CORS controls, security headers, request IDs, and JSON logs |
+| SaaS inspection foundation | Implemented | Workspace-scoped analysis metadata, locations, human review audit, dashboard aggregates, and SQLite/PostgreSQL persistence |
+| Customer identity | Implemented in hosted beta | Validates Entra External ID access tokens through OIDC discovery, audience, tenant, scope, and optional caller checks |
+| Workspace roles and invitations | Implemented in hosted beta | One-time email-bound invites plus manager, inspector, and reviewer API authorization |
+| Responsive team workbench | Implemented in hosted beta | Fluent UI React client for inspection, review, team, and real workspace metrics |
 | Windows installer pipeline | Implemented | Builds versioned installer, checksum, manifest, and install/uninstall smoke tests |
 | Automated tests | Implemented | Pytest suite runs locally and through GitHub Actions |
 | Reproducible ML evaluation | Implemented | Versioned grouped manifests, safety metrics, plots, calibration, subgroup and latency reports |
@@ -181,12 +276,14 @@ flowchart TD
 | Stakeholder and handoff package | Implemented | Defines workflow, value hypothesis, success criteria, risks, ownership, and production gaps |
 | Fictional insurance RAG companion | Implemented example | Citation-first semantic retrieval, abstention, typed API, human oversight, and evaluation over authored fictional data |
 | Azure readiness gate | Implemented, blocked by evidence | Fails closed until independent evaluation, pilot, tests, security review, and owner approvals exist |
+| Azure-native staging foundation | Deployed beta | App Service API, immutable model-bundle verification, PostgreSQL metadata, Static Web Apps, External ID, and `freshsenseai.com` without Docker |
 
 ### Not implemented yet
 
 - persistent vector database;
 - multi-turn conversation memory;
-- hosted cloud deployment (the Azure gate currently blocks it);
+- hosted customer sign-up flow, billing, and account administration;
+- production SLOs, alerting, load tests, and an independently validated cloud benchmark;
 - an independently validated arbitrary-object detector and real-world benchmark;
 - completed human-reviewed pilot observations; and
 - trusted Authenticode signing by default (the release scripts support it, but a
@@ -281,6 +378,14 @@ OpenAPI documentation is available at
 | `GET` | `/api/v1/health` | Reports model, retrieval, authentication, and supported-fruit readiness |
 | `POST` | `/api/v1/analyze` | Analyzes one multipart image in field `file` |
 | `GET` | `/api/v1/metrics` | Returns process-local request and analysis metrics |
+| `GET` | `/api/v1/me` | Returns the authenticated account and workspace role |
+| `GET` | `/api/v1/workspace` | Returns the authenticated pilot workspace, members, and locations |
+| `POST` | `/api/v1/workspace/invitations` | Creates a manager-only one-time team invitation |
+| `POST` | `/api/v1/workspace/invitations/accept` | Accepts an email-bound team invitation |
+| `GET` | `/api/v1/dashboard` | Returns workspace inspection and human-review aggregates |
+| `GET` | `/api/v1/inspections` | Lists workspace-scoped inspection metadata |
+| `POST` | `/api/v1/inspections/analyze` | Analyzes a photo and saves metadata without retaining the image |
+| `PATCH` | `/api/v1/inspections/{id}/review` | Confirms, corrects, or dismisses a result |
 
 Example:
 
@@ -290,10 +395,29 @@ curl.exe -F "file=@C:\path\to\banana.png;type=image/png" `
   http://127.0.0.1:8000/api/v1/analyze
 ```
 
-Keep the API bound to `127.0.0.1` for local development. Before exposing it to
-another client, configure API-key authentication, explicit trusted hosts, and
-specific CORS origins. See [Windows release documentation](docs/WINDOWS_RELEASE.md)
-for the supported operational workflow.
+Keep the API bound to `127.0.0.1` for local development. API-key mode remains
+available for controlled automation, but it is not customer login.
+
+### Authenticated team workbench
+
+The React client in `web/` uses Microsoft Entra External ID, Fluent UI, and the
+real workspace API. It has no mock account, demo metrics, embedded API key, or
+client secret.
+
+```powershell
+cd web
+Copy-Item .env.example .env.local
+# Replace every placeholder in .env.local, then:
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+The hosted beta is available at [freshsenseai.com](https://freshsenseai.com/).
+For a separate environment, configure the API in `entra` mode before signing in. Follow the complete
+[Microsoft Entra External ID setup](docs/ENTRA_EXTERNAL_ID_SETUP.md), including
+the separate SPA and API registrations, delegated scope, exact redirect URI,
+trusted hosts, and CORS origin. This is a controlled beta, not a claim of
+independently validated production food-safety performance.
 
 ## Privacy and storage
 
@@ -301,6 +425,9 @@ for the supported operational workflow.
   an application copy.
 - The REST API closes uploaded temporary resources before inference and does not
   retain the uploaded filename or image in application storage.
+- The SaaS inspection foundation stores result, location, batch, and human-review
+  metadata only. Uploaded image bytes and filenames are not written to its
+  database.
 - Desktop history stores only the scan timestamp, base filename, displayed
   result, accepted confidence, risk, decision, and status.
 - Desktop history is limited to 200 records and defaults to
@@ -329,8 +456,15 @@ Common environment variables:
 | `FRESHSENSE_HISTORY_PATH` | Override desktop history storage |
 | `FRESHSENSE_REQUIRE_API_KEY` | Require an API key for analysis and metrics |
 | `FRESHSENSE_API_KEY_FILE` | Read the API key from a local secret file |
+| `FRESHSENSE_AUTH_MODE` | Select `local`, `api_key`, or `entra` authentication |
+| `FRESHSENSE_ENTRA_TENANT_ID` | Restrict access tokens to one External ID tenant |
+| `FRESHSENSE_ENTRA_API_CLIENT_ID` | Required API access-token audience |
+| `FRESHSENSE_ENTRA_AUTHORITY` | HTTPS External ID authority used for OIDC discovery |
+| `FRESHSENSE_ENTRA_REQUIRED_SCOPE` | Required delegated API scope, default `access_as_user` |
+| `FRESHSENSE_ENTRA_ALLOWED_CLIENT_IDS` | Optional comma-separated approved SPA client IDs |
 | `FRESHSENSE_ALLOWED_HOSTS` | Comma-separated trusted API hosts |
 | `FRESHSENSE_CORS_ORIGINS` | Comma-separated allowed browser origins |
+| `FRESHSENSE_SAAS_DATABASE_PATH` | Local metadata database used by the SaaS foundation |
 
 API upload size, decoded pixel limits, rate limits, JSON logging, and
 semantic-readiness requirements are also configurable in `utils/config.py`.
@@ -351,11 +485,13 @@ FreshSense-AI/
 |-- installer/             Inno Setup definition
 |-- pilot/                 SQLite metadata-only controlled-pilot records and summaries
 |-- scripts/               Embedding, build, verification, signing, and smoke tools
+|-- saas/                  Workspace-scoped inspection and review persistence
 |-- tests/                 Unit, API, retrieval, safety, history, and release tests
 |-- training/              Grouped MobileNetV2 training and MLflow tracking
 |-- tools/                 Vision, quality, scene, retrieval, and reasoning tools
 |-- ui/                    Streamlit presentation components, styles, and sample discovery
 |-- utils/                 Configuration, startup validation, catalog, and versioning
+|-- web/                   Entra-authenticated Fluent UI React workbench
 |-- app.py                 Streamlit entry point
 |-- desktop_app.py         Windows desktop entry point
 |-- FreshSenseAI.spec      PyInstaller build definition
@@ -431,6 +567,10 @@ fruit-specific rewrites when the catalog and model remain consistent.
 - [Technology handoff](docs/TECHNOLOGY_HANDOFF.md)
 - [Model experiments with MLflow](docs/MODEL_EXPERIMENTS.md)
 - [Azure handoff and readiness gate](docs/AZURE_HANDOFF.md)
+- [FreshSense 0.6 SaaS product brief](docs/SAAS_PRODUCT_BRIEF.md)
+- [SaaS foundation development log](docs/DEVELOPMENT_LOG_SAAS_FOUNDATION.md)
+- [Entra External ID setup](docs/ENTRA_EXTERNAL_ID_SETUP.md)
+- [SaaS identity and web workbench development log](docs/DEVELOPMENT_LOG_SAAS_IDENTITY_WEB.md)
 - [FreshSense 0.4 development log](docs/DEVELOPMENT_LOG_FRESHSENSE_0_4.md)
 - [FreshSense 0.3 development log](docs/DEVELOPMENT_LOG_FRESHSENSE_0_3.md)
 - [Windows release development log](docs/DEVELOPMENT_LOG_WINDOWS_RELEASE.md)

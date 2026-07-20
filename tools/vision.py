@@ -76,7 +76,21 @@ class DenseNetVisionTool:
         arr = np.expand_dims(arr, axis=0)
         return arr
 
-    def run(self, state: AgentState) -> AgentState:
+    def warm_up(self) -> None:
+        """Run one inference during startup so the first customer scan is not cold."""
+        x = np.zeros((1, IMAGE_SIZE[1], IMAGE_SIZE[0], 3), dtype=np.float32)
+        if self.feature_model is not None:
+            feature = np.asarray(self.feature_model.predict(x, verbose=0), dtype=np.float32)
+            self.model.layers[-1](feature, training=False)
+        else:
+            self.model.predict(x, verbose=0)
+
+    def run(
+        self,
+        state: AgentState,
+        *,
+        generate_explanation: bool | None = None,
+    ) -> AgentState:
         x = self._preprocess(state.image)
         gate_decision = None
         if self.open_set_gate is not None and self.feature_model is not None:
@@ -138,7 +152,10 @@ class DenseNetVisionTool:
             f"with confidence {prediction.confidence:.2%}."
         )
 
-        if self.gradcam_explainer is not None:
+        should_generate_explanation = (
+            self.gradcam_explainer is not None and generate_explanation is not False
+        )
+        if should_generate_explanation:
             try:
                 explanation = self.gradcam_explainer.explain(x, idx)
                 explanation["target_class"] = prediction.class_name
