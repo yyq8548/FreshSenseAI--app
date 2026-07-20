@@ -7,6 +7,7 @@ __pycache__/
 build/
 dist/
 work/
+.worktrees/
 web/node_modules/
 web/dist/
 web/.env.local

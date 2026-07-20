@@ -104,6 +104,7 @@ Create `video/package.json` with exact versions and scripts:
     "@remotion/cli": "4.0.495",
     "@types/node": "26.1.1",
     "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
     "tsx": "4.23.1",
     "typescript": "5.9.3",
     "vitest": "4.1.10"
@@ -137,7 +138,7 @@ Create `video/vitest.config.ts`:
 import {defineConfig} from 'vitest/config';
 
 export default defineConfig({
-  test: {environment: 'node', include: ['tests/**/*.test.ts']},
+  test: {environment: 'node', include: ['tests/**/*.test.{ts,tsx}']},
 });
 ```
 
@@ -433,6 +434,7 @@ git commit -m "Validate FreshSense video screenshots"
 - Create: `video/src/components/TechStack.tsx`
 - Create: `video/src/components/ClosingCard.tsx`
 - Test: `video/tests/motion.test.ts`
+- Test: `video/tests/components.test.tsx`
 
 **Interfaces:**
 - Consumes: `Scene`, `Callout`, approved screenshots, and Remotion `Caption[]` JSON.
@@ -461,11 +463,28 @@ describe('documentary screenshot motion', () => {
 });
 ```
 
+Create `video/tests/components.test.tsx` before any component file exists:
+
+```tsx
+import {renderToStaticMarkup} from 'react-dom/server';
+import {describe, expect, it} from 'vitest';
+import {TechStack} from '../src/components/TechStack';
+
+describe('FreshSense technology card', () => {
+  it('names the six implemented platform technologies', () => {
+    const markup = renderToStaticMarkup(<TechStack />);
+    for (const name of ['Python', 'TensorFlow', 'FastAPI', 'React', 'PostgreSQL', 'Azure']) {
+      expect(markup).toContain(name);
+    }
+  });
+});
+```
+
 - [ ] **Step 2: Run the motion test and verify failure**
 
-Run: `npm.cmd test -- motion.test.ts`
+Run: `npm.cmd test -- motion.test.ts components.test.tsx`
 
-Expected: FAIL because `src/motion.ts` is missing.
+Expected: FAIL because `src/motion.ts` and `src/components/TechStack.tsx` are missing.
 
 - [ ] **Step 3: Implement theme and deterministic motion**
 
@@ -619,7 +638,7 @@ export const CaptionTrack: React.FC<{captions: readonly Caption[]}> = ({captions
 Run:
 
 ```powershell
-npm.cmd test -- motion.test.ts
+npm.cmd test -- motion.test.ts components.test.tsx
 npm.cmd run typecheck
 ```
 
@@ -628,7 +647,7 @@ Expected: two passing motion tests and TypeScript exit code 0.
 - [ ] **Step 6: Commit the visual system**
 
 ```powershell
-git add video/src/theme.ts video/src/motion.ts video/src/components video/tests/motion.test.ts
+git add video/src/theme.ts video/src/motion.ts video/src/components video/tests/motion.test.ts video/tests/components.test.tsx
 git commit -m "Create FreshSense documentary video components"
 ```
 
@@ -853,6 +872,7 @@ Create `video/tests/composition.test.ts`:
 ```ts
 import {describe, expect, it} from 'vitest';
 import {SCENES, TOTAL_FRAMES} from '../src/content';
+import {sceneComponentName} from '../src/FreshSenseDemo';
 
 describe('composition contract', () => {
   it('uses one sequence per scene and the approved final duration', () => {
@@ -865,6 +885,12 @@ describe('composition contract', () => {
       'overview.png', 'batch-inspection.png', 'agent-activity.png', 'review-queue.png', 'manager-chat.png',
     ]);
   });
+
+  it('maps every scene to its approved visual component', () => {
+    expect(SCENES.map(sceneComponentName)).toEqual([
+      'title', 'screenshot', 'screenshot', 'screenshot', 'screenshot', 'screenshot', 'manager', 'closing',
+    ]);
+  });
 });
 ```
 
@@ -872,7 +898,7 @@ describe('composition contract', () => {
 
 Run: `npm.cmd test -- composition.test.ts`
 
-Expected: two passing tests. This test freezes the approved content contract before composition code is added.
+Expected: FAIL because `src/FreshSenseDemo.tsx` does not exist. This proves the composition contract is exercising new production code.
 
 - [ ] **Step 3: Register the composition**
 
@@ -932,11 +958,14 @@ const ManagerScene: React.FC<{scene: Scene}> = ({scene}) => {
 };
 
 const SceneRenderer: React.FC<{scene: Scene}> = ({scene}) => {
-  if (scene.kind === 'title') return <TitleCard />;
-  if (scene.kind === 'closing') return <ClosingCard />;
-  if (scene.kind === 'manager') return <ManagerScene scene={scene} />;
+  const component = sceneComponentName(scene);
+  if (component === 'title') return <TitleCard />;
+  if (component === 'closing') return <ClosingCard />;
+  if (component === 'manager') return <ManagerScene scene={scene} />;
   return <ScreenshotScene scene={scene} />;
 };
+
+export const sceneComponentName = (scene: Scene): Scene['kind'] => scene.kind;
 
 export const FreshSenseDemo: React.FC<{captionFile: string}> = ({captionFile}) => {
   const [captions, setCaptions] = useState<Caption[] | null>(null);
