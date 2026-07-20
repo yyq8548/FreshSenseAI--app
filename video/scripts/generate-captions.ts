@@ -14,6 +14,7 @@ import {
   mergeZeroDurationCaptions,
   retimeCaptionsToNarration,
   validateCaptions,
+  withCleanOutput,
 } from '../src/media';
 
 const whisperVersion = '1.5.5';
@@ -25,48 +26,56 @@ const tempRoot = join(videoRoot, '.tmp');
 const captionRoot = join(videoRoot, 'public', 'captions');
 const input = join(videoRoot, 'public', 'audio', 'narration.wav');
 const converted = join(tempRoot, 'narration-16k.wav');
+const output = join(captionRoot, 'narration.json');
 
 mkdirSync(tempRoot, {recursive: true});
 mkdirSync(captionRoot, {recursive: true});
-execFileSync(
-  remotion.command,
-  [
-    ...remotion.prefixArgs,
-    'ffmpeg',
-    '-i',
-    input,
-    '-ar',
-    '16000',
-    '-ac',
-    '1',
-    converted,
-    '-y',
-  ],
-  {stdio: 'inherit'},
-);
-await installWhisperCpp({to: whisperRoot, version: whisperVersion});
-await downloadWhisperModel({model: whisperModel, folder: whisperRoot});
-const whisperCppOutput = await transcribe({
-  model: whisperModel,
-  whisperPath: whisperRoot,
-  whisperCppVersion: whisperVersion,
-  inputPath: converted,
-  tokenLevelTimestamps: true,
+await withCleanOutput(output, async () => {
+  execFileSync(
+    remotion.command,
+    [
+      ...remotion.prefixArgs,
+      'ffmpeg',
+      '-i',
+      input,
+      '-ar',
+      '16000',
+      '-ac',
+      '1',
+      converted,
+      '-y',
+    ],
+    {stdio: 'inherit'},
+  );
+  await installWhisperCpp({to: whisperRoot, version: whisperVersion});
+  await downloadWhisperModel({model: whisperModel, folder: whisperRoot});
+  const whisperCppOutput = await transcribe({
+    model: whisperModel,
+    whisperPath: whisperRoot,
+    whisperCppVersion: whisperVersion,
+    inputPath: converted,
+    tokenLevelTimestamps: true,
+  });
+  const {captions: rawCaptions} = toCaptions({whisperCppOutput});
+  const timingCaptions = mergeZeroDurationCaptions(rawCaptions);
+  const timingErrors = validateCaptions(timingCaptions);
+  if (timingErrors.length > 0) {
+    throw new Error(timingErrors.join('\n'));
+  }
+  const alignment = retimeCaptionsToNarration(
+    timingCaptions,
+    NARRATION_TEXT,
+  );
+  const captionErrors = validateCaptions(alignment.captions);
+  if (captionErrors.length > 0) {
+    throw new Error(captionErrors.join('\n'));
+  }
+  writeFileSync(
+    output,
+    `${JSON.stringify(alignment.captions, null, 2)}\n`,
+    'utf8',
+  );
+  console.log(
+    `Generated ${alignment.captions.length} timed captions from ${alignment.recognizedWordCount} recognized words (score ${alignment.score.toFixed(3)}, coverage ${alignment.coverage.toFixed(3)}).`,
+  );
 });
-const {captions: rawCaptions} = toCaptions({whisperCppOutput});
-const timingCaptions = mergeZeroDurationCaptions(rawCaptions);
-const timingErrors = validateCaptions(timingCaptions);
-if (timingErrors.length > 0) {
-  throw new Error(timingErrors.join('\n'));
-}
-const captions = retimeCaptionsToNarration(timingCaptions, NARRATION_TEXT);
-const captionErrors = validateCaptions(captions);
-if (captionErrors.length > 0) {
-  throw new Error(captionErrors.join('\n'));
-}
-writeFileSync(
-  join(captionRoot, 'narration.json'),
-  `${JSON.stringify(captions, null, 2)}\n`,
-  'utf8',
-);
-console.log(`Generated ${captions.length} timed captions.`);

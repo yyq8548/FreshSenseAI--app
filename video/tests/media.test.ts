@@ -1,13 +1,23 @@
 import type {Caption} from '@remotion/captions';
+import {
+  existsSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {describe, expect, it} from 'vitest';
 import {NARRATION_TEXT} from '../src/content';
 import {
   getAmbientFfmpegArgs,
   getRemotionInvocation,
+  groupWhisperCaptionsIntoWords,
   mergeZeroDurationCaptions,
   retimeCaptionsToNarration,
   validateCaptions,
   validateNarrationDuration,
+  withCleanOutput,
 } from '../src/media';
 
 const caption = (text: string, startMs: number, endMs: number): Caption => ({
@@ -17,6 +27,13 @@ const caption = (text: string, startMs: number, endMs: number): Caption => ({
   timestampMs: null,
   confidence: 1,
 });
+
+const joinedCaptionText = (captions: readonly Caption[]) =>
+  captions
+    .map(({text}) => text)
+    .join('')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 describe('caption validation', () => {
   it('accepts ordered non-overlapping captions inside 60 seconds', () => {
@@ -93,28 +110,130 @@ describe('caption validation', () => {
     expect(validateCaptions([])).toEqual(['captions are empty']);
   });
 
-  it('retimes the exact approved narration from Whisper timing boundaries', () => {
-    const whisperTiming = NARRATION_TEXT.split(/\s+/).map((_, index) =>
-      caption(` wrong${index}`, index * 100, (index + 1) * 100),
+  it('groups unequal split Whisper tokens and reconstructs the exact narration', () => {
+    const rawTokens: Caption[] = [];
+    let cursor = 100;
+    for (const word of NARRATION_TEXT.split(/\s+/)) {
+      const fragments =
+        word === 'FreshSense'
+          ? [' Fresh', 'Sense']
+          : word === 'DenseNet201'
+            ? [' Dense', 'Net', '201']
+            : [` ${word}`];
+      for (const fragment of fragments) {
+        rawTokens.push(caption(fragment, cursor, cursor + 100));
+        cursor += 100;
+      }
+    }
+    expect(rawTokens).toHaveLength(116);
+    const spokenWords = groupWhisperCaptionsIntoWords(rawTokens);
+    expect(spokenWords).toHaveLength(112);
+    const alignment = retimeCaptionsToNarration(rawTokens, NARRATION_TEXT);
+    expect(joinedCaptionText(alignment.captions)).toBe(NARRATION_TEXT);
+    expect(validateCaptions(alignment.captions)).toEqual([]);
+    expect(alignment.coverage).toBe(1);
+    expect(alignment.score).toBe(1);
+  });
+
+  it('maps mistranscribed brands as local substitutions', () => {
+    const rawTokens = [
+      caption(' Freshes', 100, 250),
+      caption(' links', 250, 400),
+      caption(' FreshesENSCAI', 400, 550),
+      caption('.com', 550, 650),
+    ];
+    const alignment = retimeCaptionsToNarration(
+      rawTokens,
+      'FreshSense links freshsenseai.com',
     );
-    const rebuilt = retimeCaptionsToNarration(
-      whisperTiming,
-      NARRATION_TEXT,
+    expect(joinedCaptionText(alignment.captions)).toBe(
+      'FreshSense links freshsenseai.com',
     );
-    const reconstructed = rebuilt
-      .map(({text}) => text)
-      .join('')
-      .replace(/\s+/g, ' ')
-      .trim();
-    expect(reconstructed).toBe(NARRATION_TEXT);
-    expect(reconstructed).toContain('FreshSense');
-    expect(reconstructed).toContain('DenseNet201');
-    expect(reconstructed).toContain('FastAPI');
-    expect(reconstructed).toContain('PostgreSQL');
-    expect(reconstructed).toContain('Azure');
-    expect(reconstructed).toContain('freshsenseai.com');
-    expect(rebuilt[0].startMs).toBe(whisperTiming[0].startMs);
-    expect(rebuilt.at(-1)?.endMs).toBe(whisperTiming.at(-1)?.endMs);
+    expect(alignment.captions[0]).toMatchObject({
+      text: 'FreshSense',
+      startMs: 100,
+      endMs: 250,
+    });
+    expect(alignment.captions[2]).toMatchObject({
+      text: ' freshsenseai.com',
+      startMs: 400,
+      endMs: 650,
+    });
+  });
+
+  it('keeps later words locally aligned across recognized insertion and deletion', () => {
+    const withInsertion = retimeCaptionsToNarration(
+      [
+        caption(' Staff', 0, 100),
+        caption(' really', 100, 250),
+        caption(' confirm', 250, 400),
+        caption(' results.', 400, 600),
+      ],
+      'Staff confirm results.',
+    );
+    expect(withInsertion.captions[1]).toMatchObject({
+      text: ' confirm',
+      startMs: 250,
+      endMs: 400,
+    });
+    expect(withInsertion.captions[2]).toMatchObject({
+      text: ' results.',
+      startMs: 400,
+      endMs: 600,
+    });
+
+    const withDeletion = retimeCaptionsToNarration(
+      [
+        caption(' Staff', 0, 100),
+        caption(' confirm', 300, 450),
+        caption(' results.', 450, 600),
+      ],
+      'Staff carefully confirm results.',
+    );
+    expect(withDeletion.captions[1]).toMatchObject({
+      text: ' carefully',
+      startMs: 100,
+      endMs: 300,
+    });
+    expect(withDeletion.captions[2]).toMatchObject({
+      text: ' confirm',
+      startMs: 300,
+      endMs: 450,
+    });
+    expect(validateCaptions(withDeletion.captions)).toEqual([]);
+  });
+
+  it('rejects unrelated low-quality transcript alignment', () => {
+    expect(() =>
+      retimeCaptionsToNarration(
+        [
+          caption(' weather', 0, 100),
+          caption(' clouds', 100, 200),
+          caption(' dancing', 200, 300),
+        ],
+        'FreshSense checks fruit',
+      ),
+    ).toThrow(/Caption alignment is too low quality/);
+  });
+});
+
+describe('caption output cleanup', () => {
+  it('removes stale and partial caption output when generation fails', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'freshsense-captions-'));
+    const output = join(root, 'narration.json');
+    try {
+      writeFileSync(output, 'stale', 'utf8');
+      await expect(
+        withCleanOutput(output, async () => {
+          expect(existsSync(output)).toBe(false);
+          writeFileSync(output, 'partial', 'utf8');
+          throw new Error('transcription failed');
+        }),
+      ).rejects.toThrow('transcription failed');
+      expect(existsSync(output)).toBe(false);
+    } finally {
+      rmSync(root, {recursive: true, force: true});
+    }
   });
 });
 

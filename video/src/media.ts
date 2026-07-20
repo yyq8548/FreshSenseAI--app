@@ -1,4 +1,5 @@
 import type {Caption} from '@remotion/captions';
+import {rmSync} from 'node:fs';
 import {join} from 'node:path';
 
 export const getRemotionInvocation = (
@@ -74,36 +75,228 @@ export const mergeZeroDurationCaptions = (
   return merged;
 };
 
+export const groupWhisperCaptionsIntoWords = (
+  captions: readonly Caption[],
+): Caption[] => {
+  const words: Caption[] = [];
+  for (const caption of captions) {
+    const text = caption.text.trim();
+    if (text.length === 0) {
+      continue;
+    }
+    if (words.length === 0 || /^\s/.test(caption.text)) {
+      words.push({...caption, text});
+      continue;
+    }
+    const previous = words[words.length - 1];
+    words[words.length - 1] = {
+      ...previous,
+      text: previous.text + text,
+      endMs: caption.endMs,
+      confidence:
+        previous.confidence === null
+          ? caption.confidence
+          : caption.confidence === null
+            ? previous.confidence
+            : Math.min(previous.confidence, caption.confidence),
+    };
+  }
+  return words;
+};
+
+const normalizeAlignmentWord = (word: string) =>
+  word.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g, '');
+
+const levenshteinDistance = (left: string, right: string): number => {
+  const row = Array.from({length: right.length + 1}, (_, index) => index);
+  for (let leftIndex = 1; leftIndex <= left.length; leftIndex++) {
+    let diagonal = row[0];
+    row[0] = leftIndex;
+    for (let rightIndex = 1; rightIndex <= right.length; rightIndex++) {
+      const above = row[rightIndex];
+      row[rightIndex] = Math.min(
+        row[rightIndex] + 1,
+        row[rightIndex - 1] + 1,
+        diagonal +
+          (left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1),
+      );
+      diagonal = above;
+    }
+  }
+  return row[right.length];
+};
+
+const wordSimilarity = (left: string, right: string): number => {
+  const normalizedLeft = normalizeAlignmentWord(left);
+  const normalizedRight = normalizeAlignmentWord(right);
+  const longest = Math.max(normalizedLeft.length, normalizedRight.length);
+  return longest === 0
+    ? 1
+    : 1 - levenshteinDistance(normalizedLeft, normalizedRight) / longest;
+};
+
+export type CaptionAlignment = {
+  captions: Caption[];
+  score: number;
+  coverage: number;
+  recognizedWordCount: number;
+};
+
 export const retimeCaptionsToNarration = (
   timingCaptions: readonly Caption[],
   narration: string,
-): Caption[] => {
+): CaptionAlignment => {
+  const recognizedWords = groupWhisperCaptionsIntoWords(timingCaptions);
   const words = narration.trim().split(/\s+/).filter(Boolean);
-  if (timingCaptions.length === 0 || words.length === 0) {
-    return [];
+  if (recognizedWords.length === 0 || words.length === 0) {
+    throw new Error('Caption alignment requires recognized and approved words.');
   }
-  if (timingCaptions.length < words.length) {
+  const gapCost = 0.75;
+  const costs = Array.from({length: words.length + 1}, () =>
+    Array(recognizedWords.length + 1).fill(0),
+  );
+  const steps = Array.from({length: words.length + 1}, () =>
+    Array<'pair' | 'approved-gap' | 'recognized-gap' | null>(
+      recognizedWords.length + 1,
+    ).fill(null),
+  );
+  for (let approvedIndex = 1; approvedIndex <= words.length; approvedIndex++) {
+    costs[approvedIndex][0] = approvedIndex * gapCost;
+    steps[approvedIndex][0] = 'approved-gap';
+  }
+  for (
+    let recognizedIndex = 1;
+    recognizedIndex <= recognizedWords.length;
+    recognizedIndex++
+  ) {
+    costs[0][recognizedIndex] = recognizedIndex * gapCost;
+    steps[0][recognizedIndex] = 'recognized-gap';
+  }
+  for (let approvedIndex = 1; approvedIndex <= words.length; approvedIndex++) {
+    for (
+      let recognizedIndex = 1;
+      recognizedIndex <= recognizedWords.length;
+      recognizedIndex++
+    ) {
+      const pair =
+        costs[approvedIndex - 1][recognizedIndex - 1] +
+        1 -
+        wordSimilarity(
+          words[approvedIndex - 1],
+          recognizedWords[recognizedIndex - 1].text,
+        );
+      const approvedGap =
+        costs[approvedIndex - 1][recognizedIndex] + gapCost;
+      const recognizedGap =
+        costs[approvedIndex][recognizedIndex - 1] + gapCost;
+      if (pair <= approvedGap && pair <= recognizedGap) {
+        costs[approvedIndex][recognizedIndex] = pair;
+        steps[approvedIndex][recognizedIndex] = 'pair';
+      } else if (approvedGap <= recognizedGap) {
+        costs[approvedIndex][recognizedIndex] = approvedGap;
+        steps[approvedIndex][recognizedIndex] = 'approved-gap';
+      } else {
+        costs[approvedIndex][recognizedIndex] = recognizedGap;
+        steps[approvedIndex][recognizedIndex] = 'recognized-gap';
+      }
+    }
+  }
+
+  const recognizedByApproved: Array<number | null> = Array(words.length).fill(
+    null,
+  );
+  let approvedIndex = words.length;
+  let recognizedIndex = recognizedWords.length;
+  while (approvedIndex > 0 || recognizedIndex > 0) {
+    const step = steps[approvedIndex][recognizedIndex];
+    if (step === 'pair') {
+      recognizedByApproved[approvedIndex - 1] = recognizedIndex - 1;
+      approvedIndex--;
+      recognizedIndex--;
+    } else if (step === 'approved-gap') {
+      approvedIndex--;
+    } else if (step === 'recognized-gap') {
+      recognizedIndex--;
+    } else {
+      throw new Error('Caption alignment backtrace failed.');
+    }
+  }
+
+  const alignedCount = recognizedByApproved.filter(
+    (index) => index !== null,
+  ).length;
+  const coverage = alignedCount / words.length;
+  const score = Math.max(
+    0,
+    1 -
+      costs[words.length][recognizedWords.length] /
+        Math.max(words.length, recognizedWords.length),
+  );
+  if (score < 0.55 || coverage < 0.7) {
     throw new Error(
-      `Not enough Whisper timing captions: ${timingCaptions.length} for ${words.length} narration words.`,
+      `Caption alignment is too low quality (score ${score.toFixed(3)}, coverage ${coverage.toFixed(3)}).`,
     );
   }
-  return words.map((word, index) => {
-    const startIndex = Math.floor(
-      (index * timingCaptions.length) / words.length,
-    );
-    const nextIndex = Math.floor(
-      ((index + 1) * timingCaptions.length) / words.length,
-    );
-    const source = timingCaptions[startIndex];
-    return {
-      ...source,
-      text: `${index === 0 ? '' : ' '}${word}`,
-      endMs:
-        index === words.length - 1
-          ? timingCaptions[timingCaptions.length - 1].endMs
-          : timingCaptions[nextIndex].startMs,
-    };
+
+  const captions: Array<Caption | null> = words.map((word, index) => {
+    const sourceIndex = recognizedByApproved[index];
+    return sourceIndex === null
+      ? null
+      : {
+          ...recognizedWords[sourceIndex],
+          text: `${index === 0 ? '' : ' '}${word}`,
+        };
   });
+  let index = 0;
+  while (index < captions.length) {
+    if (captions[index] !== null) {
+      index++;
+      continue;
+    }
+    const runStart = index;
+    while (index < captions.length && captions[index] === null) {
+      index++;
+    }
+    const previous = captions[runStart - 1];
+    const next = captions[index];
+    if (!previous || !next || next.startMs <= previous.endMs) {
+      throw new Error(
+        `Cannot locally interpolate approved words ${runStart}-${index - 1}.`,
+      );
+    }
+    const segmentDuration =
+      (next.startMs - previous.endMs) / (index - runStart);
+    for (let missingIndex = runStart; missingIndex < index; missingIndex++) {
+      captions[missingIndex] = {
+        text: ` ${words[missingIndex]}`,
+        startMs:
+          previous.endMs + segmentDuration * (missingIndex - runStart),
+        endMs:
+          previous.endMs + segmentDuration * (missingIndex - runStart + 1),
+        timestampMs: null,
+        confidence: null,
+      };
+    }
+  }
+  return {
+    captions: captions as Caption[],
+    score,
+    coverage,
+    recognizedWordCount: recognizedWords.length,
+  };
+};
+
+export const withCleanOutput = async <Result>(
+  outputPath: string,
+  generate: () => Promise<Result>,
+): Promise<Result> => {
+  rmSync(outputPath, {force: true});
+  try {
+    return await generate();
+  } catch (error) {
+    rmSync(outputPath, {force: true});
+    throw error;
+  }
 };
 
 export const validateNarrationDuration = (durationSeconds: number): string[] =>
