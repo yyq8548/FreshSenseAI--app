@@ -73,6 +73,43 @@ def test_valid_model_prediction_is_used(monkeypatch):
     assert all("demo" not in step.lower() for step in state.trace)
 
 
+def test_gradcam_is_skipped_for_fast_api_scans(monkeypatch):
+    class ValidModel:
+        def predict(self, _input, verbose=0):
+            return np.array([[0.01, 0.92, 0.01, 0.02, 0.02, 0.02]])
+
+    class FakeExplainer:
+        def __init__(self):
+            self.calls = 0
+
+        def explain(self, _input, _index):
+            self.calls += 1
+            return {"method": "grad_cam", "layer": "test", "heatmap": [[1.0]]}
+
+    _install_fake_tensorflow(monkeypatch, ValidModel())
+    tool = DenseNetVisionTool(
+        "model.h5",
+        open_set_gate_path=None,
+        require_open_set_gate=False,
+        enable_gradcam=False,
+    )
+    explainer = FakeExplainer()
+    tool.gradcam_explainer = explainer
+
+    fast_state = tool.run(
+        AgentState(image=Image.new("RGB", (224, 224))),
+        generate_explanation=False,
+    )
+    detailed_state = tool.run(
+        AgentState(image=Image.new("RGB", (224, 224))),
+        generate_explanation=True,
+    )
+
+    assert explainer.calls == 1
+    assert "explainability" not in fast_state.metadata
+    assert detailed_state.metadata["explainability"]["target_class"] == "freshbanana"
+
+
 def test_model_output_order_comes_from_injected_catalog(monkeypatch):
     class TwoClassModel:
         def predict(self, _input, verbose=0):

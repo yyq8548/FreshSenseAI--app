@@ -89,6 +89,25 @@ API_JSON_LOGS = os.getenv("FRESHSENSE_JSON_LOGS", "false").lower() == "true"
 API_REQUIRE_SEMANTIC_RAG = (
     os.getenv("FRESHSENSE_REQUIRE_SEMANTIC_RAG", "false").lower() == "true"
 )
+API_AUTH_MODE = os.getenv("FRESHSENSE_AUTH_MODE", "").strip().lower() or None
+ENTRA_TENANT_ID = os.getenv("FRESHSENSE_ENTRA_TENANT_ID", "").strip()
+ENTRA_API_CLIENT_ID = os.getenv("FRESHSENSE_ENTRA_API_CLIENT_ID", "").strip()
+ENTRA_AUTHORITY = os.getenv("FRESHSENSE_ENTRA_AUTHORITY", "").strip()
+ENTRA_REQUIRED_SCOPE = os.getenv(
+    "FRESHSENSE_ENTRA_REQUIRED_SCOPE", "access_as_user"
+).strip()
+ENTRA_ALLOWED_CLIENT_IDS = tuple(
+    value.strip()
+    for value in os.getenv("FRESHSENSE_ENTRA_ALLOWED_CLIENT_IDS", "").split(",")
+    if value.strip()
+)
+SAAS_DATABASE_PATH = os.getenv(
+    "FRESHSENSE_SAAS_DATABASE_URL",
+    os.getenv(
+        "FRESHSENSE_SAAS_DATABASE_PATH",
+        str(PROJECT_ROOT / "runtime" / "freshsense_saas.db"),
+    ),
+)
 
 # Safety copy is centralized so every user-facing surface presents the same
 # limitations. This application is decision support, not a food-safety test.

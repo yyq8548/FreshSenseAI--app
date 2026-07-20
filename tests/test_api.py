@@ -1,6 +1,7 @@
 from io import BytesIO
 from base64 import b64decode
 from types import SimpleNamespace
+import time
 
 from fastapi.testclient import TestClient
 from PIL import Image
@@ -121,6 +122,25 @@ class _ExplainableAgent(_FakeAgent):
         return state
 
 
+class _FastPathAgent(_FakeAgent):
+    def __init__(self) -> None:
+        super().__init__()
+        self.explanation_requests: list[bool] = []
+        self.warm_up_count = 0
+
+    def warm_up(self) -> None:
+        self.warm_up_count += 1
+
+    def run_for_api(
+        self,
+        image: Image.Image,
+        *,
+        include_explanation: bool = False,
+    ) -> AgentState:
+        self.explanation_requests.append(include_explanation)
+        return super().run(image)
+
+
 def _image_bytes(
     *,
     size: tuple[int, int] = (16, 16),
@@ -161,6 +181,7 @@ def test_api_loads_one_shared_agent_and_reports_health():
         "semantic_model": "test/semantic-model",
         "supported_fruits": ["Apple", "Banana", "Orange"],
         "image_retention": False,
+        "database_backend": "sqlite",
         "authentication_required": False,
         "rate_limit_per_minute": 30,
     }
@@ -174,6 +195,37 @@ def test_api_health_reports_keyword_fallback():
     assert response.status_code == 200
     assert response.json()["retrieval_mode"] == "keyword_fallback"
     assert response.json()["semantic_model"] is None
+
+
+def test_production_style_background_initialization_keeps_health_responsive():
+    def slow_factory():
+        time.sleep(0.1)
+        return _FakeAgent()
+
+    app = create_app(
+        agent_factory=slow_factory,
+        background_agent_initialization=True,
+    )
+    with TestClient(app) as client:
+        starting = client.get("/api/v1/health")
+        unavailable = client.post(
+            "/api/v1/analyze",
+            files=_upload(_image_bytes()),
+        )
+        deadline = time.monotonic() + 2.0
+        ready = starting
+        while ready.json()["status"] != "ok" and time.monotonic() < deadline:
+            time.sleep(0.02)
+            ready = client.get("/api/v1/health")
+
+    assert starting.status_code == 200
+    assert starting.json()["status"] == "starting"
+    assert starting.json()["model_loaded"] is False
+    assert unavailable.status_code == 503
+    assert unavailable.json()["error"]["code"] == "SERVICE_NOT_READY"
+    assert ready.status_code == 200
+    assert ready.json()["status"] == "ok"
+    assert ready.json()["model_loaded"] is True
 
 
 def test_analyze_returns_prediction_retrieval_warnings_and_privacy_contract():
@@ -225,6 +277,23 @@ def test_analyze_returns_gradcam_overlay_only_when_requested():
     assert explanation["method"] == "grad_cam"
     assert explanation["target_class"] == "freshbanana"
     assert b64decode(explanation["overlay_png_base64"]).startswith(b"\x89PNG")
+
+
+def test_api_warms_model_once_and_routes_explanations_explicitly():
+    fake_agent = _FastPathAgent()
+    app = create_app(agent_factory=lambda: fake_agent)
+
+    with TestClient(app) as client:
+        default_response = client.post("/api/v1/analyze", files=_upload(_image_bytes()))
+        explained_response = client.post(
+            "/api/v1/analyze?include_explanation=true",
+            files=_upload(_image_bytes()),
+        )
+
+    assert default_response.status_code == 200
+    assert explained_response.status_code == 200
+    assert fake_agent.warm_up_count == 1
+    assert fake_agent.explanation_requests == [False, True]
 
 
 def test_analyze_withholds_tentative_uncertain_prediction():

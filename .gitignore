@@ -3,9 +3,15 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+.pytest-*/
 build/
 dist/
 work/
+web/node_modules/
+web/dist/
+web/.env.local
+web/*.tsbuildinfo
+web/work/
 outputs/
 mlruns/
 runtime-bundle*.zip
@@ -20,5 +26,6 @@ dataset/
 *.pth
 secrets/*.txt
 pilot/data/
+runtime/
 ci/golden/
 FRUIT_CLASSIFICATION_FRESH_VS_ROTTEN_USING-CONVOLUTIONAL-NEURAL_NETWORK-main/

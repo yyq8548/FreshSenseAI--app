@@ -19,6 +19,8 @@ $paths = @(
     "models\densenet201.h5",
     "models\open_set_gate.npz",
     "models\embedding_cache",
+    "data\fruit_catalog.json",
+    "data\food_knowledge_base.json",
     "artifacts\model_manifest.json",
     "evaluation\manifests\legacy_grouped_v1.json",
     "evaluation\reports\current_model\evaluation_report.json",
@@ -43,7 +45,27 @@ New-Item -ItemType Directory -Force (Split-Path -Parent $resolvedOutput) | Out-N
 if (Test-Path -LiteralPath $resolvedOutput) {
     Remove-Item -LiteralPath $resolvedOutput -Force
 }
-Compress-Archive -Path (Join-Path $resolvedWork "*") -DestinationPath $resolvedOutput
+$tar = Get-Command tar -ErrorAction Stop
+Push-Location $resolvedWork
+try {
+    & $tar.Source -a -c -f $resolvedOutput .
+    if ($LASTEXITCODE -ne 0) {
+        throw "tar failed to create the runtime ZIP (exit code $LASTEXITCODE)."
+    }
+} finally {
+    Pop-Location
+}
+
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$archive = [System.IO.Compression.ZipFile]::OpenRead($resolvedOutput)
+try {
+    $invalid = @($archive.Entries | Where-Object { $_.FullName.Contains("\") })
+    if ($invalid.Count -gt 0) {
+        throw "Runtime ZIP contains non-POSIX path separators."
+    }
+} finally {
+    $archive.Dispose()
+}
 $hash = (Get-FileHash -LiteralPath $resolvedOutput -Algorithm SHA256).Hash.ToLowerInvariant()
 Set-Content -LiteralPath "$resolvedOutput.sha256" -Value "$hash  $([System.IO.Path]::GetFileName($resolvedOutput))" -Encoding ascii
 Write-Host "Runtime bundle: $resolvedOutput"

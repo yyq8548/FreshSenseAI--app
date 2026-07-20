@@ -11,9 +11,10 @@ import secrets
 import time
 
 from fastapi import Depends, Request
-from fastapi.security import APIKeyHeader
+from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
 
 from api.errors import ApiProblem
+from api.identity import AuthContext, TokenValidationError
 from utils.startup import StartupValidationError
 
 
@@ -21,6 +22,11 @@ API_KEY_HEADER = APIKeyHeader(
     name="X-API-Key",
     scheme_name="FreshSenseApiKey",
     description="FreshSense API key supplied through the X-API-Key header.",
+    auto_error=False,
+)
+BEARER_HEADER = HTTPBearer(
+    scheme_name="FreshSenseEntraBearer",
+    description="Microsoft Entra access token issued for the FreshSense API.",
     auto_error=False,
 )
 
@@ -61,12 +67,42 @@ def validate_api_key_configuration(api_key: str | None, *, required: bool) -> No
 async def authenticate_request(
     request: Request,
     supplied_key: str | None = Depends(API_KEY_HEADER),
+    bearer: HTTPAuthorizationCredentials | None = Depends(BEARER_HEADER),
 ) -> str:
     """Authenticate protected routes and return a non-secret rate-limit identity."""
-    existing_identity = getattr(request.state, "auth_identity", None)
-    if existing_identity is not None:
-        return existing_identity
-    return authenticate_api_key(request, supplied_key)
+    context = authenticate_for_request(
+        request,
+        supplied_key=supplied_key,
+        bearer_token=(bearer.credentials if bearer else None),
+    )
+    return context.identity
+
+
+async def authenticated_context(
+    request: Request,
+    supplied_key: str | None = Depends(API_KEY_HEADER),
+    bearer: HTTPAuthorizationCredentials | None = Depends(BEARER_HEADER),
+) -> AuthContext:
+    return authenticate_for_request(
+        request,
+        supplied_key=supplied_key,
+        bearer_token=(bearer.credentials if bearer else None),
+    )
+
+
+def authenticate_for_request(
+    request: Request,
+    *,
+    supplied_key: str | None,
+    bearer_token: str | None,
+) -> AuthContext:
+    existing = getattr(request.state, "auth_context", None)
+    if existing is not None:
+        return existing
+    if request.app.state.auth_mode == "entra":
+        return authenticate_entra_token(request, bearer_token)
+    authenticate_api_key(request, supplied_key)
+    return request.state.auth_context
 
 
 def authenticate_api_key(request: Request, supplied_key: str | None) -> str:
@@ -87,10 +123,78 @@ def authenticate_api_key(request: Request, supplied_key: str | None) -> str:
             )
 
     client_host = request.client.host if request.client else "unknown"
-    identity_material = f"{client_host}:{supplied_key or 'anonymous'}"
+    identity_material = (
+        f"api-key:{supplied_key}"
+        if supplied_key
+        else f"anonymous-client:{client_host}"
+    )
     identity = sha256(identity_material.encode("utf-8")).hexdigest()
     request.state.auth_identity = identity
+    request.state.auth_context = AuthContext(
+        identity=identity,
+        subject=identity,
+        tenant_id=None,
+        display_name="Local API user" if supplied_key else "Local development user",
+        email=None,
+        scheme="api_key" if supplied_key else "local",
+        scopes=frozenset(),
+    )
     return identity
+
+
+def authenticate_entra_token(request: Request, bearer_token: str | None) -> AuthContext:
+    if not bearer_token:
+        raise ApiProblem(
+            401,
+            "INVALID_ACCESS_TOKEN",
+            "A valid Microsoft Entra bearer token is required.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    validator = getattr(request.app.state, "entra_token_validator", None)
+    if validator is None:
+        raise ApiProblem(
+            503,
+            "IDENTITY_PROVIDER_UNAVAILABLE",
+            "Microsoft Entra authentication is not ready.",
+        )
+    try:
+        claims = validator.validate(bearer_token)
+    except TokenValidationError as exc:
+        raise ApiProblem(
+            401,
+            "INVALID_ACCESS_TOKEN",
+            "A valid Microsoft Entra bearer token is required.",
+            headers={"WWW-Authenticate": 'Bearer error="invalid_token"'},
+        ) from exc
+
+    subject = str(claims.get("sub", "")).strip()
+    tenant_id = str(claims.get("tid", "")).strip()
+    if not subject or not tenant_id:
+        raise ApiProblem(
+            401,
+            "INVALID_ACCESS_TOKEN",
+            "A valid Microsoft Entra bearer token is required.",
+            headers={"WWW-Authenticate": 'Bearer error="invalid_token"'},
+        )
+    emails = claims.get("emails")
+    email = (
+        str(emails[0]).strip()
+        if isinstance(emails, list) and emails
+        else str(claims.get("email") or claims.get("preferred_username") or "").strip()
+    )
+    identity = sha256(f"entra:{tenant_id}:{subject}".encode("utf-8")).hexdigest()
+    context = AuthContext(
+        identity=identity,
+        subject=subject,
+        tenant_id=tenant_id,
+        display_name=str(claims.get("name") or "").strip() or None,
+        email=email or None,
+        scheme="entra",
+        scopes=frozenset(str(claims.get("scp", "")).split()),
+    )
+    request.state.auth_identity = identity
+    request.state.auth_context = context
+    return context
 
 
 @dataclass(frozen=True)
