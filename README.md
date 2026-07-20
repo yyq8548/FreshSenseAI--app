@@ -18,14 +18,17 @@ tomatoes, and pears.
 
 ## 60-second product demo
 
-[▶ Watch the FreshSense product and AI workflow demo](docs/demo/freshsense-recruiter-demo-60s.mp4)
+[![Watch the 60-second FreshSense product demo](docs/images/workbench/freshsense-demo-thumbnail.png)](https://freshsenseai.com/demo)
+
+[Open the public video page](https://freshsenseai.com/demo) |
+[Download the MP4](docs/demo/freshsense-recruiter-demo-60s.mp4) |
+[SHA-256 checksum](docs/demo/freshsense-recruiter-demo-60s.mp4.sha256) |
+[Media manifest](docs/demo/freshsense-recruiter-demo-60s.json)
 
 The video follows one inspection from multi-photo upload through computer
 vision, bounded Agent follow-up, human review, Manager Chat, and the daily
 quality report. It includes English neural narration and matching captions.
-[SHA-256 checksum](docs/demo/freshsense-recruiter-demo-60s.mp4.sha256) and
-[media manifest](docs/demo/freshsense-recruiter-demo-60s.json) are included for
-artifact verification.
+The checksum and media manifest are included for artifact verification.
 
 ## Product overview
 
