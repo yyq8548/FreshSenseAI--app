@@ -1,6 +1,55 @@
 import type {Caption} from '@remotion/captions';
 import {rmSync} from 'node:fs';
-import {join} from 'node:path';
+import {join, posix, win32} from 'node:path';
+
+export const DEFAULT_EDGE_TTS_VOICE = 'en-US-AvaNeural';
+
+export const getSystemPythonExecutable = (
+  platform: NodeJS.Platform = process.platform,
+): string => (platform === 'win32' ? 'python' : 'python3');
+
+export const getVoicePythonExecutable = (
+  tempRoot: string,
+  platform: NodeJS.Platform = process.platform,
+): string =>
+  platform === 'win32'
+    ? win32.join(tempRoot, 'edge-tts-venv', 'Scripts', 'python.exe')
+    : posix.join(tempRoot, 'edge-tts-venv', 'bin', 'python');
+
+export const getEdgeTtsInvocation = (
+  pythonExecutable: string,
+  textPath: string,
+  outputPath: string,
+  voice = DEFAULT_EDGE_TTS_VOICE,
+): {command: string; args: string[]} => ({
+  command: pythonExecutable,
+  args: [
+    '-m',
+    'edge_tts',
+    '--voice',
+    voice,
+    '--file',
+    textPath,
+    '--write-media',
+    outputPath,
+  ],
+});
+
+export const getNarrationFfmpegArgs = (
+  inputPath: string,
+  outputPath: string,
+): string[] => [
+  '-i',
+  inputPath,
+  '-ar',
+  '48000',
+  '-ac',
+  '1',
+  '-c:a',
+  'pcm_s16le',
+  outputPath,
+  '-y',
+];
 
 export const getRemotionInvocation = (
   videoRoot: string,
@@ -299,6 +348,24 @@ export const withCleanOutput = async <Result>(
   }
 };
 
+export const withCleanOutputsSync = <Result>(
+  outputPaths: readonly string[],
+  generate: () => Result,
+): Result => {
+  const clean = () => {
+    for (const outputPath of outputPaths) {
+      rmSync(outputPath, {force: true});
+    }
+  };
+  clean();
+  try {
+    return generate();
+  } catch (error) {
+    clean();
+    throw error;
+  }
+};
+
 export const validateNarrationDuration = (durationSeconds: number): string[] =>
   Number.isFinite(durationSeconds) &&
   durationSeconds > 0 &&
@@ -306,6 +373,13 @@ export const validateNarrationDuration = (durationSeconds: number): string[] =>
     ? []
     : [
         `narration must be shorter than 59.5 seconds (received ${durationSeconds})`,
+      ];
+
+export const validateNarrationFileSize = (sizeBytes: number): string[] =>
+  Number.isFinite(sizeBytes) && sizeBytes > 100_000
+    ? []
+    : [
+        `narration must be larger than 100000 bytes (received ${sizeBytes})`,
       ];
 
 export const validateCaptions = (captions: readonly Caption[]): string[] => {

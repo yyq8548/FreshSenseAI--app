@@ -1,46 +1,79 @@
 import {execFileSync} from 'node:child_process';
-import {mkdirSync, rmSync, statSync, writeFileSync} from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {NARRATION_TEXT} from '../src/content';
 import {
+  DEFAULT_EDGE_TTS_VOICE,
+  getEdgeTtsInvocation,
+  getNarrationFfmpegArgs,
   getRemotionInvocation,
+  getSystemPythonExecutable,
+  getVoicePythonExecutable,
   validateNarrationDuration,
+  validateNarrationFileSize,
+  withCleanOutputsSync,
 } from '../src/media';
 
 const videoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const tempRoot = join(videoRoot, '.tmp');
 const audioRoot = join(videoRoot, 'public', 'audio');
 const textPath = join(tempRoot, 'narration.txt');
+const compressedPath = join(tempRoot, 'narration.mp3');
 const outputPath = join(audioRoot, 'narration.wav');
-const scriptPath = join(videoRoot, 'scripts', 'generate-voiceover.ps1');
+const requirementsPath = join(videoRoot, 'requirements-voice.txt');
+const venvRoot = join(tempRoot, 'edge-tts-venv');
+const voicePython = getVoicePythonExecutable(tempRoot);
 const remotion = getRemotionInvocation(videoRoot);
-const voice =
-  process.env.FRESHSENSE_DEMO_VOICE ?? 'Microsoft Zira Desktop';
+const systemPython =
+  process.env.FRESHSENSE_PYTHON ?? getSystemPythonExecutable();
+const voice = process.env.FRESHSENSE_DEMO_VOICE ?? DEFAULT_EDGE_TTS_VOICE;
 
-mkdirSync(tempRoot, {recursive: true});
-mkdirSync(audioRoot, {recursive: true});
-writeFileSync(textPath, NARRATION_TEXT, 'utf8');
-try {
+withCleanOutputsSync([compressedPath, outputPath], () => {
+  mkdirSync(tempRoot, {recursive: true});
+  mkdirSync(audioRoot, {recursive: true});
+  writeFileSync(textPath, NARRATION_TEXT, 'utf8');
+  if (!existsSync(voicePython)) {
+    rmSync(venvRoot, {recursive: true, force: true});
+    execFileSync(systemPython, ['-m', 'venv', venvRoot], {stdio: 'inherit'});
+  }
   execFileSync(
-    'powershell.exe',
+    voicePython,
     [
-      '-NoProfile',
-      '-ExecutionPolicy',
-      'Bypass',
-      '-File',
-      scriptPath,
-      '-TextPath',
-      textPath,
-      '-OutputPath',
-      outputPath,
-      '-VoiceName',
-      voice,
+      '-m',
+      'pip',
+      'install',
+      '--disable-pip-version-check',
+      '--requirement',
+      requirementsPath,
     ],
     {stdio: 'inherit'},
   );
-  if (statSync(outputPath).size <= 100_000) {
-    throw new Error('Narration output is missing or too small.');
+  const edgeTts = getEdgeTtsInvocation(
+    voicePython,
+    textPath,
+    compressedPath,
+    voice,
+  );
+  execFileSync(edgeTts.command, edgeTts.args, {stdio: 'inherit'});
+  execFileSync(
+    remotion.command,
+    [
+      ...remotion.prefixArgs,
+      'ffmpeg',
+      ...getNarrationFfmpegArgs(compressedPath, outputPath),
+    ],
+    {stdio: 'inherit'},
+  );
+  const sizeErrors = validateNarrationFileSize(statSync(outputPath).size);
+  if (sizeErrors.length > 0) {
+    throw new Error(sizeErrors.join('\n'));
   }
   const probeOutput = execFileSync(
     remotion.command,
@@ -65,7 +98,5 @@ try {
   console.log(
     `Generated narration with ${voice}: ${outputPath} (${duration.toFixed(6)}s)`,
   );
-} catch (error) {
-  rmSync(outputPath, {force: true});
-  throw error;
-}
+  rmSync(compressedPath, {force: true});
+});

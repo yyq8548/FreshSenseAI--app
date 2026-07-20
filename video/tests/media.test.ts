@@ -10,14 +10,21 @@ import {join} from 'node:path';
 import {describe, expect, it} from 'vitest';
 import {NARRATION_TEXT} from '../src/content';
 import {
+  DEFAULT_EDGE_TTS_VOICE,
   getAmbientFfmpegArgs,
+  getEdgeTtsInvocation,
+  getNarrationFfmpegArgs,
   getRemotionInvocation,
+  getSystemPythonExecutable,
+  getVoicePythonExecutable,
   groupWhisperCaptionsIntoWords,
   mergeZeroDurationCaptions,
   retimeCaptionsToNarration,
   validateCaptions,
   validateNarrationDuration,
+  validateNarrationFileSize,
   withCleanOutput,
+  withCleanOutputsSync,
 } from '../src/media';
 
 const caption = (text: string, startMs: number, endMs: number): Caption => ({
@@ -235,6 +242,29 @@ describe('caption output cleanup', () => {
       rmSync(root, {recursive: true, force: true});
     }
   });
+
+  it('removes stale and partial narration outputs when generation fails', () => {
+    const root = mkdtempSync(join(tmpdir(), 'freshsense-narration-'));
+    const compressed = join(root, 'narration.mp3');
+    const output = join(root, 'narration.wav');
+    try {
+      writeFileSync(compressed, 'stale', 'utf8');
+      writeFileSync(output, 'stale', 'utf8');
+      expect(() =>
+        withCleanOutputsSync([compressed, output], () => {
+          expect(existsSync(compressed)).toBe(false);
+          expect(existsSync(output)).toBe(false);
+          writeFileSync(compressed, 'partial', 'utf8');
+          writeFileSync(output, 'partial', 'utf8');
+          throw new Error('synthesis failed');
+        }),
+      ).toThrow('synthesis failed');
+      expect(existsSync(compressed)).toBe(false);
+      expect(existsSync(output)).toBe(false);
+    } finally {
+      rmSync(root, {recursive: true, force: true});
+    }
+  });
 });
 
 describe('narration duration validation', () => {
@@ -248,6 +278,13 @@ describe('narration duration validation', () => {
     ]);
     expect(validateNarrationDuration(60)).toEqual([
       'narration must be shorter than 59.5 seconds (received 60)',
+    ]);
+  });
+
+  it('requires a narration file larger than 100 KB', () => {
+    expect(validateNarrationFileSize(100_001)).toEqual([]);
+    expect(validateNarrationFileSize(100_000)).toEqual([
+      'narration must be larger than 100000 bytes (received 100000)',
     ]);
   });
 });
@@ -284,6 +321,70 @@ describe('Remotion media commands', () => {
       '-c:a',
       'pcm_s16le',
       'ambient.wav',
+      '-y',
+    ]);
+  });
+
+  it('uses the credential-free Microsoft neural voice by default', () => {
+    expect(DEFAULT_EDGE_TTS_VOICE).toBe('en-US-AvaNeural');
+    expect(
+      getEdgeTtsInvocation(
+        'C:\\voice-python.exe',
+        'C:\\narration.txt',
+        'C:\\narration.mp3',
+      ),
+    ).toEqual({
+      command: 'C:\\voice-python.exe',
+      args: [
+        '-m',
+        'edge_tts',
+        '--voice',
+        'en-US-AvaNeural',
+        '--file',
+        'C:\\narration.txt',
+        '--write-media',
+        'C:\\narration.mp3',
+      ],
+    });
+  });
+
+  it('keeps the neural voice override free of credential arguments', () => {
+    const invocation = getEdgeTtsInvocation(
+      'python',
+      'narration.txt',
+      'narration.mp3',
+      'en-US-AndrewNeural',
+    );
+    expect(invocation.args).toContain('en-US-AndrewNeural');
+    expect(invocation.args.join(' ')).not.toMatch(/key|token|credential/i);
+  });
+
+  it('selects the virtual-environment Python executable by platform', () => {
+    expect(getVoicePythonExecutable('C:\\video\\.tmp', 'win32')).toBe(
+      'C:\\video\\.tmp\\edge-tts-venv\\Scripts\\python.exe',
+    );
+    expect(getVoicePythonExecutable('/video/.tmp', 'linux')).toBe(
+      '/video/.tmp/edge-tts-venv/bin/python',
+    );
+  });
+
+  it('selects an available conventional system Python name by platform', () => {
+    expect(getSystemPythonExecutable('win32')).toBe('python');
+    expect(getSystemPythonExecutable('linux')).toBe('python3');
+    expect(getSystemPythonExecutable('darwin')).toBe('python3');
+  });
+
+  it('converts neural speech to a mono 48 kHz PCM WAV', () => {
+    expect(getNarrationFfmpegArgs('narration.mp3', 'narration.wav')).toEqual([
+      '-i',
+      'narration.mp3',
+      '-ar',
+      '48000',
+      '-ac',
+      '1',
+      '-c:a',
+      'pcm_s16le',
+      'narration.wav',
       '-y',
     ]);
   });
