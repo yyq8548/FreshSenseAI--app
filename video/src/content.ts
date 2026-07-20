@@ -1,5 +1,6 @@
 export const FPS = 30;
 export const TOTAL_FRAMES = 60 * FPS;
+export const APPROVED_NARRATION_TEXT = 'Fruit checks happen fast, but the record often disappears with the shift. FreshSense gives grocery teams a shared inspection record. Staff can add a photo or batch of twenty. The model covers apples, bananas, oranges, mangoes, tomatoes, and pears. Photos are not stored by default. DenseNet201 looks for visible fresh or rotten patterns. A separate gate withholds unclear or unsupported inputs. A bounded Agent checks history and reviewed guidance, creates follow-up tasks, and notifies staff. High-risk actions require manager approval. Staff confirm or correct results. Managers ask grounded questions and check the daily report. FreshSense runs on Python, TensorFlow, FastAPI, React, PostgreSQL, and Azure. Try freshsenseai.com or view the code on GitHub.';
 
 export type Callout = {label: string; x: number; y: number; delayFrame: number};
 export type SceneKind = 'title' | 'screenshot' | 'manager' | 'closing';

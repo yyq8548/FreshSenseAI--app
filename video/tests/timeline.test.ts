@@ -1,5 +1,10 @@
 import {describe, expect, it} from 'vitest';
-import {NARRATION_TEXT, SCENES, TOTAL_FRAMES} from '../src/content';
+import {
+  APPROVED_NARRATION_TEXT,
+  NARRATION_TEXT,
+  SCENES,
+  TOTAL_FRAMES,
+} from '../src/content';
 import {sceneAtFrame, validateTimeline} from '../src/timeline';
 
 describe('FreshSense timeline', () => {
@@ -17,6 +22,13 @@ describe('FreshSense timeline', () => {
 
   it('keeps the 112-word final calibrated narration', () => {
     expect(NARRATION_TEXT.trim().split(/\s+/)).toHaveLength(112);
+  });
+
+  it('matches the exact approved final narration', () => {
+    expect(APPROVED_NARRATION_TEXT).toBe(
+      'Fruit checks happen fast, but the record often disappears with the shift. FreshSense gives grocery teams a shared inspection record. Staff can add a photo or batch of twenty. The model covers apples, bananas, oranges, mangoes, tomatoes, and pears. Photos are not stored by default. DenseNet201 looks for visible fresh or rotten patterns. A separate gate withholds unclear or unsupported inputs. A bounded Agent checks history and reviewed guidance, creates follow-up tasks, and notifies staff. High-risk actions require manager approval. Staff confirm or correct results. Managers ask grounded questions and check the daily report. FreshSense runs on Python, TensorFlow, FastAPI, React, PostgreSQL, and Azure. Try freshsenseai.com or view the code on GitHub.',
+    );
+    expect(NARRATION_TEXT).toBe(APPROVED_NARRATION_TEXT);
   });
 
   it('resolves boundary frames to the correct scene', () => {

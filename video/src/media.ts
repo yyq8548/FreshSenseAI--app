@@ -44,11 +44,15 @@ export const mergeZeroDurationCaptions = (
   captions: readonly Caption[],
 ): Caption[] => {
   const merged: Caption[] = [];
-  let leadingText = '';
+  let leadingCaption: Caption | null = null;
   for (const caption of captions) {
-    if (caption.endMs <= caption.startMs) {
+    if (caption.endMs === caption.startMs) {
       if (merged.length === 0) {
-        leadingText += caption.text;
+        if (leadingCaption === null) {
+          leadingCaption = {...caption};
+        } else {
+          leadingCaption.text += caption.text;
+        }
       } else {
         const previous = merged[merged.length - 1];
         merged[merged.length - 1] = {
@@ -58,14 +62,64 @@ export const mergeZeroDurationCaptions = (
       }
       continue;
     }
-    merged.push({...caption, text: leadingText + caption.text});
-    leadingText = '';
+    merged.push({
+      ...caption,
+      text: (leadingCaption?.text ?? '') + caption.text,
+    });
+    leadingCaption = null;
+  }
+  if (leadingCaption) {
+    merged.push(leadingCaption);
   }
   return merged;
 };
 
+export const retimeCaptionsToNarration = (
+  timingCaptions: readonly Caption[],
+  narration: string,
+): Caption[] => {
+  const words = narration.trim().split(/\s+/).filter(Boolean);
+  if (timingCaptions.length === 0 || words.length === 0) {
+    return [];
+  }
+  if (timingCaptions.length < words.length) {
+    throw new Error(
+      `Not enough Whisper timing captions: ${timingCaptions.length} for ${words.length} narration words.`,
+    );
+  }
+  return words.map((word, index) => {
+    const startIndex = Math.floor(
+      (index * timingCaptions.length) / words.length,
+    );
+    const nextIndex = Math.floor(
+      ((index + 1) * timingCaptions.length) / words.length,
+    );
+    const source = timingCaptions[startIndex];
+    return {
+      ...source,
+      text: `${index === 0 ? '' : ' '}${word}`,
+      endMs:
+        index === words.length - 1
+          ? timingCaptions[timingCaptions.length - 1].endMs
+          : timingCaptions[nextIndex].startMs,
+    };
+  });
+};
+
+export const validateNarrationDuration = (durationSeconds: number): string[] =>
+  Number.isFinite(durationSeconds) &&
+  durationSeconds > 0 &&
+  durationSeconds < 59.5
+    ? []
+    : [
+        `narration must be shorter than 59.5 seconds (received ${durationSeconds})`,
+      ];
+
 export const validateCaptions = (captions: readonly Caption[]): string[] => {
   const errors: string[] = [];
+  if (captions.length === 0) {
+    errors.push('captions are empty');
+  }
   captions.forEach((caption, index) => {
     if (caption.endMs <= caption.startMs) {
       errors.push(`caption ${index} has no duration`);

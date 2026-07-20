@@ -8,9 +8,11 @@ import {
   toCaptions,
   transcribe,
 } from '@remotion/install-whisper-cpp';
+import {NARRATION_TEXT} from '../src/content';
 import {
   getRemotionInvocation,
   mergeZeroDurationCaptions,
+  retimeCaptionsToNarration,
   validateCaptions,
 } from '../src/media';
 
@@ -52,10 +54,15 @@ const whisperCppOutput = await transcribe({
   tokenLevelTimestamps: true,
 });
 const {captions: rawCaptions} = toCaptions({whisperCppOutput});
-const captions = mergeZeroDurationCaptions(rawCaptions);
-const errors = validateCaptions(captions);
-if (errors.length > 0) {
-  throw new Error(errors.join('\n'));
+const timingCaptions = mergeZeroDurationCaptions(rawCaptions);
+const timingErrors = validateCaptions(timingCaptions);
+if (timingErrors.length > 0) {
+  throw new Error(timingErrors.join('\n'));
+}
+const captions = retimeCaptionsToNarration(timingCaptions, NARRATION_TEXT);
+const captionErrors = validateCaptions(captions);
+if (captionErrors.length > 0) {
+  throw new Error(captionErrors.join('\n'));
 }
 writeFileSync(
   join(captionRoot, 'narration.json'),
