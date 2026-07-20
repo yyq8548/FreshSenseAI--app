@@ -30,6 +30,16 @@ jobs:
         run: |
           python -m pytest tests
 
+      - name: Run Manager Chat safety evaluation
+        run: |
+          python scripts/run_manager_chat_evaluation.py --output manager-chat-evaluation
+
+      - name: Upload Manager Chat evaluation report
+        uses: actions/upload-artifact@v4
+        with:
+          name: manager-chat-evaluation
+          path: manager-chat-evaluation
+
   web-test:
     runs-on: ubuntu-latest
 

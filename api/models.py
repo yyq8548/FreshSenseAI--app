@@ -399,3 +399,73 @@ class DailyQualityReportResponse(ApiModel):
     fruit_counts: dict[str, int]
     summary: str
     generated_at_utc: str
+
+
+class ManagerPreferenceResponse(ApiModel):
+    preferred_language: Literal["auto", "en", "zh"]
+    response_detail: Literal["concise", "standard", "detailed"]
+    default_location_name: str
+    review_focus: Literal["balanced", "freshness_risk", "operations"]
+    custom_instructions: str
+    updated_at_utc: str
+
+
+class ManagerPreferenceUpdateRequest(ApiModel):
+    preferred_language: Literal["auto", "en", "zh"] | None = None
+    response_detail: Literal["concise", "standard", "detailed"] | None = None
+    default_location_name: str | None = Field(default=None, max_length=80)
+    review_focus: Literal["balanced", "freshness_risk", "operations"] | None = None
+    custom_instructions: str | None = Field(default=None, max_length=600)
+
+
+class ManagerChatCitationResponse(ApiModel):
+    source_type: Literal["inspection", "agent_run", "knowledge"]
+    source_id: str
+    label: str
+
+
+class ManagerChatMessageResponse(ApiModel):
+    message_id: str
+    conversation_id: str
+    role: Literal["user", "assistant"]
+    content: str
+    citations: list[ManagerChatCitationResponse]
+    metadata: dict[str, Any]
+    created_at_utc: str
+
+
+class ManagerConversationSummaryResponse(ApiModel):
+    conversation_id: str
+    title: str
+    status: Literal["active", "archived"]
+    created_at_utc: str
+    updated_at_utc: str
+    message_count: int = Field(ge=0)
+    last_message: str | None
+
+
+class ManagerConversationResponse(ApiModel):
+    conversation_id: str
+    title: str
+    status: Literal["active", "archived"]
+    created_at_utc: str
+    updated_at_utc: str
+    messages: list[ManagerChatMessageResponse]
+
+
+class ManagerConversationListResponse(ApiModel):
+    conversations: list[ManagerConversationSummaryResponse]
+    count: int = Field(ge=0)
+
+
+class ManagerConversationCreateRequest(ApiModel):
+    title: str = Field(default="New conversation", min_length=1, max_length=120)
+
+
+class ManagerChatMessageCreateRequest(ApiModel):
+    content: str = Field(min_length=1, max_length=4000)
+
+
+class ManagerChatReplyResponse(ApiModel):
+    conversation: ManagerConversationResponse
+    assistant_message: ManagerChatMessageResponse

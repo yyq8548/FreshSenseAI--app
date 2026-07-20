@@ -15,7 +15,7 @@ bananas, oranges, mangoes, tomatoes, and pears.
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-2.19-orange)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.139-009688)
-![Tests](https://img.shields.io/badge/tests-178%20automated-brightgreen)
+![Tests](https://img.shields.io/badge/tests-188%20Python%20%2B%208%20web-brightgreen)
 ![Release](https://img.shields.io/badge/release-0.6.0%20Public%20Beta-blueviolet)
 
 ## Product overview
@@ -216,6 +216,10 @@ flowchart TD
     QD -- "Low risk" --> QE["Create task or notification"]
     QD -- "High risk" --> QF["Wait for Manager approval"]
     QD -- "Prohibited" --> QG["Block action"]
+    QB --> QH["Manager asks about history or Agent decision"]
+    QH --> QI["Load conversation memory and manager preferences"]
+    QI --> QJ["Retrieve workspace evidence and reviewed knowledge"]
+    QJ --> QK["Generate cited answer without executing actions"]
 ```
 
 ### Key design decisions
@@ -295,11 +299,12 @@ enabled only after the model reports ready.
 | Supervised workflow Agent | Implemented foundation | Uses typed tools, same-batch/store/fruit history, reviewed knowledge and memory, role tasks, notifications, manager approvals, and complete run/step auditing |
 | Camera and multi-photo batches | Implemented | Opens the device camera or accepts up to 20 photos, compresses each locally, reports progress, and notifies the employee when processing finishes |
 | Daily quality report | Implemented | Summarizes inspections, rotten flags, withheld results, human reviews, corrections, open tasks, approvals, and fruit mix |
+| Manager Chat | Implemented | Manager-only multi-turn chat over workspace inspection history, Agent traces, tasks, approvals, and reviewed RAG evidence |
+| Conversation memory and preferences | Implemented | Persists workspace-scoped text conversations plus per-manager language, detail, location, review-focus, and instruction preferences |
 
 ### Not implemented yet
 
 - persistent vector database;
-- multi-turn conversation memory;
 - hosted customer sign-up flow, billing, and account administration;
 - production SLOs, alerting, load tests, and an independently validated cloud benchmark;
 - an independently validated arbitrary-object detector and real-world benchmark;
@@ -430,6 +435,11 @@ OpenAPI documentation is available at
 | `GET` | `/api/v1/approvals` | Lists pending high-risk actions for managers |
 | `PATCH` | `/api/v1/approvals/{id}` | Approves or rejects a proposed batch hold |
 | `GET` | `/api/v1/reports/daily` | Generates the workspace quality report for one UTC day |
+| `GET/PATCH` | `/api/v1/manager/preferences` | Reads or updates the signed-in Manager's assistant preferences |
+| `GET/POST` | `/api/v1/manager/conversations` | Lists or creates durable Manager Chat conversations |
+| `GET` | `/api/v1/manager/conversations/{id}` | Returns one workspace-scoped conversation and its messages |
+| `POST` | `/api/v1/manager/conversations/{id}/messages` | Stores a manager question and returns a grounded, cited answer |
+| `POST` | `/api/v1/manager/conversations/{id}/archive` | Archives one conversation without deleting its audit history |
 
 Example:
 
@@ -470,7 +480,8 @@ independently validated production food-safety performance.
 - The REST API closes uploaded temporary resources before inference and does not
   retain the uploaded filename or image in application storage.
 - The SaaS inspection foundation stores result, location, batch, and human-review
-  metadata plus Agent traces, tasks, notifications, approvals, and review memory.
+  metadata plus Agent traces, tasks, notifications, approvals, review memory,
+  Manager Chat text, citations, and manager preferences.
   Uploaded image bytes and filenames are not written to its database.
 - Desktop history stores only the scan timestamp, base filename, displayed
   result, accepted confidence, risk, decision, and status.
@@ -480,6 +491,10 @@ independently validated production food-safety performance.
 - When GPT-5 reasoning is enabled, the application sends prediction metadata,
   quality/scene data, warnings, and retrieved text to OpenAI; it does not include
   the photo.
+- When Manager Chat uses OpenAI, it sends the current question, recent text
+  messages, manager preferences, relevant workspace metadata, and reviewed
+  knowledge with API-side storage disabled. The deterministic grounded fallback
+  remains available when the provider is disabled or unavailable.
 
 ## Configuration
 
@@ -566,6 +581,17 @@ python scripts\run_evaluation.py `
   --dataset C:\path\to\fruit_scanner\dataset
 ```
 
+Run the deterministic Manager Chat grounding and safety evaluation:
+
+```powershell
+python scripts\run_manager_chat_evaluation.py
+```
+
+To test the configured OpenAI Responses API model against the same versioned
+cases, configure LLM reasoning and an API key, then add `--mode openai`. Treat
+that output as model-specific evidence and complete the documented human review
+before release.
+
 Build the Windows release:
 
 ```powershell
@@ -617,6 +643,8 @@ fruit-specific rewrites when the catalog and model remain consistent.
 - [Entra External ID setup](docs/ENTRA_EXTERNAL_ID_SETUP.md)
 - [SaaS identity and web workbench development log](docs/DEVELOPMENT_LOG_SAAS_IDENTITY_WEB.md)
 - [Autonomous agent architecture and safety gates](docs/AUTONOMOUS_AGENT_ARCHITECTURE.md)
+- [Manager Chat architecture, memory, preferences, and safety](docs/MANAGER_CHAT.md)
+- [Manager Chat evaluation protocol and release gates](docs/MANAGER_CHAT_EVALUATION.md)
 - [FreshSense 0.4 development log](docs/DEVELOPMENT_LOG_FRESHSENSE_0_4.md)
 - [FreshSense 0.3 development log](docs/DEVELOPMENT_LOG_FRESHSENSE_0_3.md)
 - [Windows release development log](docs/DEVELOPMENT_LOG_WINDOWS_RELEASE.md)

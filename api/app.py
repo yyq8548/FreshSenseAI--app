@@ -33,6 +33,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from agent.autonomous import AutonomousInspectionAgent, ShadowAgentError
+from agent.manager_chat import ManagerChatResponder, ManagerChatService
 from api.errors import ApiProblem
 from api.identity import AuthContext, EntraTokenValidator, TokenValidationError
 from api.models import (
@@ -54,6 +55,13 @@ from api.models import (
     InspectionResponse,
     InspectionReviewRequest,
     MetricsResponse,
+    ManagerChatMessageCreateRequest,
+    ManagerChatReplyResponse,
+    ManagerConversationCreateRequest,
+    ManagerConversationListResponse,
+    ManagerConversationResponse,
+    ManagerPreferenceResponse,
+    ManagerPreferenceUpdateRequest,
     NotificationListResponse,
     NotificationResponse,
     WorkspaceInvitationAcceptRequest,
@@ -80,6 +88,7 @@ from api.security import (
 from api.serialization import serialize_agent_state
 from saas.store import (
     AgentRunNotFoundError,
+    ConversationNotFoundError,
     InspectionNotFoundError,
     SaaSStore,
     SaaSStoreError,
@@ -136,6 +145,7 @@ PROTECTED_API_PREFIXES = (
     "/api/v1/workspace",
     "/api/v1/dashboard",
     "/api/v1/inspections",
+    "/api/v1/manager",
 )
 UPLOAD_API_PATHS = frozenset({"/api/v1/analyze", "/api/v1/inspections/analyze"})
 
@@ -183,6 +193,7 @@ def create_app(
     entra_required_scope: str = ENTRA_REQUIRED_SCOPE,
     entra_allowed_client_ids: Sequence[str] = ENTRA_ALLOWED_CLIENT_IDS,
     entra_token_validator: object | None = None,
+    manager_chat_responder: ManagerChatResponder | None = None,
     background_agent_initialization: bool | None = None,
 ) -> FastAPI:
     """Create a secured API instance while keeping tests model-free."""
@@ -247,11 +258,16 @@ def create_app(
 
         saas_store = SaaSStore(saas_database_path)
         autonomous_agent = AutonomousInspectionAgent(saas_store)
+        manager_chat_service = ManagerChatService(
+            saas_store,
+            responder=manager_chat_responder,
+        )
         application.state.agent = None
         application.state.agent_status = "starting"
         application.state.agent_startup_error = None
         application.state.saas_store = saas_store
         application.state.autonomous_agent = autonomous_agent
+        application.state.manager_chat_service = manager_chat_service
         application.state.saas_store_status = "starting"
         application.state.inference_lock = asyncio.Lock()
 
@@ -295,6 +311,9 @@ def create_app(
                         await run_in_threadpool(warm_up)
 
                 application.state.agent = agent
+                retriever = getattr(agent, "retriever_tool", None)
+                if callable(getattr(retriever, "retrieve", None)):
+                    manager_chat_service.retriever = retriever
                 application.state.agent_status = "ok"
                 logger.info(
                     "FreshSense model initialized and warmed",
@@ -379,6 +398,7 @@ def create_app(
             application.state.entra_token_validator = None
             application.state.saas_store = None
             application.state.autonomous_agent = None
+            application.state.manager_chat_service = None
             logger.info("FreshSense API stopped", extra={"event": "service_stopped"})
 
     application = FastAPI(
@@ -655,6 +675,181 @@ def create_app(
         except SaaSStoreError as exc:
             raise _store_problem() from exc
         return DashboardResponse.model_validate(value)
+
+    @router.get(
+        "/manager/preferences",
+        response_model=ManagerPreferenceResponse,
+        tags=["manager-chat"],
+        summary="Return the signed-in manager's assistant preferences",
+    )
+    async def manager_preferences(
+        request: Request,
+        identity: str = Depends(authenticate_request),
+    ) -> ManagerPreferenceResponse:
+        await _require_workspace_role(request, identity, {"manager"})
+        store = _active_saas_store(request)
+        try:
+            value = await run_in_threadpool(store.manager_preferences, identity)
+        except SaaSStoreError as exc:
+            raise _store_problem() from exc
+        return ManagerPreferenceResponse.model_validate(value)
+
+    @router.patch(
+        "/manager/preferences",
+        response_model=ManagerPreferenceResponse,
+        tags=["manager-chat"],
+        summary="Update the signed-in manager's assistant preferences",
+    )
+    async def update_manager_preferences(
+        payload: ManagerPreferenceUpdateRequest,
+        request: Request,
+        identity: str = Depends(authenticate_request),
+    ) -> ManagerPreferenceResponse:
+        await _require_workspace_role(request, identity, {"manager"})
+        store = _active_saas_store(request)
+        try:
+            value = await run_in_threadpool(
+                store.update_manager_preferences,
+                identity_hash=identity,
+                **payload.model_dump(),
+            )
+        except SaaSStoreError as exc:
+            raise ApiProblem(400, "INVALID_MANAGER_PREFERENCES", str(exc)) from exc
+        return ManagerPreferenceResponse.model_validate(value)
+
+    @router.post(
+        "/manager/conversations",
+        response_model=ManagerConversationResponse,
+        tags=["manager-chat"],
+        summary="Create a durable manager conversation",
+    )
+    async def create_manager_conversation(
+        payload: ManagerConversationCreateRequest,
+        request: Request,
+        identity: str = Depends(authenticate_request),
+    ) -> ManagerConversationResponse:
+        await _require_workspace_role(request, identity, {"manager"})
+        store = _active_saas_store(request)
+        try:
+            value = await run_in_threadpool(
+                store.create_manager_conversation,
+                identity_hash=identity,
+                title=payload.title,
+            )
+        except SaaSStoreError as exc:
+            raise ApiProblem(400, "INVALID_MANAGER_CONVERSATION", str(exc)) from exc
+        return ManagerConversationResponse.model_validate(value)
+
+    @router.get(
+        "/manager/conversations",
+        response_model=ManagerConversationListResponse,
+        tags=["manager-chat"],
+        summary="List active manager conversations in this workspace",
+    )
+    async def manager_conversations(
+        request: Request,
+        limit: int = Query(30, ge=1, le=100),
+        identity: str = Depends(authenticate_request),
+    ) -> ManagerConversationListResponse:
+        await _require_workspace_role(request, identity, {"manager"})
+        store = _active_saas_store(request)
+        try:
+            values = await run_in_threadpool(
+                store.list_manager_conversations,
+                identity,
+                limit=limit,
+            )
+        except SaaSStoreError as exc:
+            raise _store_problem() from exc
+        return ManagerConversationListResponse(
+            conversations=values,
+            count=len(values),
+        )
+
+    @router.get(
+        "/manager/conversations/{conversation_id}",
+        response_model=ManagerConversationResponse,
+        tags=["manager-chat"],
+        summary="Return one workspace-scoped manager conversation",
+    )
+    async def manager_conversation(
+        conversation_id: str,
+        request: Request,
+        identity: str = Depends(authenticate_request),
+    ) -> ManagerConversationResponse:
+        await _require_workspace_role(request, identity, {"manager"})
+        store = _active_saas_store(request)
+        try:
+            value = await run_in_threadpool(
+                store.manager_conversation,
+                identity,
+                conversation_id,
+            )
+        except ConversationNotFoundError as exc:
+            raise ApiProblem(404, "MANAGER_CONVERSATION_NOT_FOUND", str(exc)) from exc
+        except SaaSStoreError as exc:
+            raise _store_problem() from exc
+        return ManagerConversationResponse.model_validate(value)
+
+    @router.post(
+        "/manager/conversations/{conversation_id}/messages",
+        response_model=ManagerChatReplyResponse,
+        tags=["manager-chat"],
+        summary="Ask a grounded, multi-turn manager question",
+        description=(
+            "Persists the manager's message, retrieves workspace inspections, Agent "
+            "audit records, preferences, and reviewed food knowledge, then stores the "
+            "grounded answer. Chat never executes operational actions."
+        ),
+    )
+    async def create_manager_message(
+        conversation_id: str,
+        payload: ManagerChatMessageCreateRequest,
+        request: Request,
+        identity: str = Depends(authenticate_request),
+    ) -> ManagerChatReplyResponse:
+        await _require_workspace_role(request, identity, {"manager"})
+        service = _active_manager_chat_service(request)
+        try:
+            result = await run_in_threadpool(
+                service.reply,
+                identity_hash=identity,
+                conversation_id=conversation_id,
+                content=payload.content,
+            )
+        except ConversationNotFoundError as exc:
+            raise ApiProblem(404, "MANAGER_CONVERSATION_NOT_FOUND", str(exc)) from exc
+        except SaaSStoreError as exc:
+            raise ApiProblem(400, "INVALID_MANAGER_MESSAGE", str(exc)) from exc
+        return ManagerChatReplyResponse(
+            conversation=result.conversation,
+            assistant_message=result.assistant_message,
+        )
+
+    @router.post(
+        "/manager/conversations/{conversation_id}/archive",
+        response_model=ManagerConversationResponse,
+        tags=["manager-chat"],
+        summary="Archive one manager conversation",
+    )
+    async def archive_manager_conversation(
+        conversation_id: str,
+        request: Request,
+        identity: str = Depends(authenticate_request),
+    ) -> ManagerConversationResponse:
+        await _require_workspace_role(request, identity, {"manager"})
+        store = _active_saas_store(request)
+        try:
+            value = await run_in_threadpool(
+                store.archive_manager_conversation,
+                identity_hash=identity,
+                conversation_id=conversation_id,
+            )
+        except ConversationNotFoundError as exc:
+            raise ApiProblem(404, "MANAGER_CONVERSATION_NOT_FOUND", str(exc)) from exc
+        except SaaSStoreError as exc:
+            raise _store_problem() from exc
+        return ManagerConversationResponse.model_validate(value)
 
     @router.post(
         "/agent/runs",
@@ -1155,6 +1350,13 @@ def _active_saas_store(request: Request) -> SaaSStore:
     if store is None or status != "ok":
         raise _store_problem()
     return store
+
+
+def _active_manager_chat_service(request: Request) -> ManagerChatService:
+    service = getattr(request.app.state, "manager_chat_service", None)
+    if service is None:
+        raise _store_problem()
+    return service
 
 
 def _store_problem() -> ApiProblem:
