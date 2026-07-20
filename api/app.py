@@ -6,6 +6,7 @@ import asyncio
 from collections.abc import Callable, Sequence
 from contextlib import asynccontextmanager
 from contextlib import suppress
+from datetime import datetime, timezone
 from io import BytesIO
 import logging
 import os
@@ -31,12 +32,21 @@ from starlette.concurrency import run_in_threadpool
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from agent.autonomous import AutonomousInspectionAgent, ShadowAgentError
 from api.errors import ApiProblem
 from api.identity import AuthContext, EntraTokenValidator, TokenValidationError
 from api.models import (
+    AgentMemoryListResponse,
+    AgentRunCreateRequest,
+    AgentRunListResponse,
+    AgentRunResponse,
+    ApprovalListResponse,
+    ApprovalResolveRequest,
+    ApprovalResponse,
     AnalyzeResponse,
     AuthenticatedUserResponse,
     DashboardResponse,
+    DailyQualityReportResponse,
     ErrorResponse,
     HealthResponse,
     InspectionAnalyzeResponse,
@@ -44,10 +54,13 @@ from api.models import (
     InspectionResponse,
     InspectionReviewRequest,
     MetricsResponse,
+    NotificationListResponse,
+    NotificationResponse,
     WorkspaceInvitationAcceptRequest,
     WorkspaceInvitationCreateRequest,
     WorkspaceInvitationResponse,
     WorkspaceResponse,
+    WorkflowTaskListResponse,
 )
 from api.observability import (
     MetricsRegistry,
@@ -65,7 +78,12 @@ from api.security import (
     validate_api_key_configuration,
 )
 from api.serialization import serialize_agent_state
-from saas.store import InspectionNotFoundError, SaaSStore, SaaSStoreError
+from saas.store import (
+    AgentRunNotFoundError,
+    InspectionNotFoundError,
+    SaaSStore,
+    SaaSStoreError,
+)
 from utils.config import (
     API_AUTH_MODE,
     API_ALLOWED_HOSTS,
@@ -110,6 +128,11 @@ PROTECTED_API_PATHS = frozenset(
     {"/api/v1/analyze", "/api/v1/me", "/api/v1/metrics"}
 )
 PROTECTED_API_PREFIXES = (
+    "/api/v1/agent",
+    "/api/v1/approvals",
+    "/api/v1/notifications",
+    "/api/v1/reports",
+    "/api/v1/workflow",
     "/api/v1/workspace",
     "/api/v1/dashboard",
     "/api/v1/inspections",
@@ -223,10 +246,12 @@ def create_app(
                 ) from exc
 
         saas_store = SaaSStore(saas_database_path)
+        autonomous_agent = AutonomousInspectionAgent(saas_store)
         application.state.agent = None
         application.state.agent_status = "starting"
         application.state.agent_startup_error = None
         application.state.saas_store = saas_store
+        application.state.autonomous_agent = autonomous_agent
         application.state.saas_store_status = "starting"
         application.state.inference_lock = asyncio.Lock()
 
@@ -353,6 +378,7 @@ def create_app(
             application.state.api_key = None
             application.state.entra_token_validator = None
             application.state.saas_store = None
+            application.state.autonomous_agent = None
             logger.info("FreshSense API stopped", extra={"event": "service_stopped"})
 
     application = FastAPI(
@@ -630,6 +656,261 @@ def create_app(
             raise _store_problem() from exc
         return DashboardResponse.model_validate(value)
 
+    @router.post(
+        "/agent/runs",
+        response_model=AgentRunResponse,
+        tags=["agent"],
+        summary="Run the bounded inspection supervisor in shadow mode",
+        description=(
+            "Creates a durable agent run, calls workspace-scoped read tools, and "
+            "records one proposed follow-up action. Shadow mode never executes the action."
+        ),
+        responses={
+            401: {"model": ErrorResponse, "description": "Invalid authentication credentials."},
+            403: {"model": ErrorResponse, "description": "Workspace role cannot start a run."},
+            404: {"model": ErrorResponse, "description": "Inspection not found."},
+            500: {"model": ErrorResponse, "description": "Shadow-agent run failed safely."},
+            503: {"model": ErrorResponse, "description": "Workspace storage unavailable."},
+        },
+    )
+    async def create_agent_run(
+        payload: AgentRunCreateRequest,
+        request: Request,
+        identity: str = Depends(authenticate_request),
+    ) -> AgentRunResponse:
+        await _require_workspace_role(request, identity, {"manager", "inspector"})
+        agent = _active_autonomous_agent(request)
+        try:
+            value = await run_in_threadpool(
+                agent.run,
+                identity_hash=identity,
+                inspection_id=payload.inspection_id,
+            )
+        except InspectionNotFoundError as exc:
+            raise ApiProblem(404, "INSPECTION_NOT_FOUND", str(exc)) from exc
+        except ShadowAgentError as exc:
+            raise ApiProblem(
+                500,
+                "AGENT_RUN_FAILED",
+                "The shadow agent could not complete its bounded run.",
+            ) from exc
+        except SaaSStoreError as exc:
+            raise _store_problem() from exc
+        return AgentRunResponse.model_validate(value)
+
+    @router.get(
+        "/agent/runs",
+        response_model=AgentRunListResponse,
+        tags=["agent"],
+        summary="List shadow-agent runs in the authenticated workspace",
+    )
+    async def agent_runs(
+        request: Request,
+        limit: int = Query(50, ge=1, le=100),
+        identity: str = Depends(authenticate_request),
+    ) -> AgentRunListResponse:
+        await _require_workspace_role(
+            request,
+            identity,
+            {"manager", "inspector", "reviewer"},
+        )
+        store = _active_saas_store(request)
+        try:
+            values = await run_in_threadpool(
+                store.list_agent_runs,
+                identity,
+                limit=limit,
+            )
+        except SaaSStoreError as exc:
+            raise _store_problem() from exc
+        return AgentRunListResponse(runs=values, count=len(values))
+
+    @router.get(
+        "/agent/runs/{run_id}",
+        response_model=AgentRunResponse,
+        tags=["agent"],
+        summary="Return one audited shadow-agent run",
+        responses={
+            404: {"model": ErrorResponse, "description": "Agent run not found."},
+        },
+    )
+    async def agent_run(
+        run_id: str,
+        request: Request,
+        identity: str = Depends(authenticate_request),
+    ) -> AgentRunResponse:
+        await _require_workspace_role(
+            request,
+            identity,
+            {"manager", "inspector", "reviewer"},
+        )
+        store = _active_saas_store(request)
+        try:
+            value = await run_in_threadpool(store.agent_run, identity, run_id)
+        except AgentRunNotFoundError as exc:
+            raise ApiProblem(404, "AGENT_RUN_NOT_FOUND", str(exc)) from exc
+        except SaaSStoreError as exc:
+            raise _store_problem() from exc
+        return AgentRunResponse.model_validate(value)
+
+    @router.get(
+        "/agent/memory",
+        response_model=AgentMemoryListResponse,
+        tags=["agent"],
+        summary="List durable human-review memory for the workspace agent",
+    )
+    async def agent_memory(
+        request: Request,
+        fruit: str | None = Query(None, max_length=80),
+        limit: int = Query(50, ge=1, le=200),
+        identity: str = Depends(authenticate_request),
+    ) -> AgentMemoryListResponse:
+        store = _active_saas_store(request)
+        try:
+            values = await run_in_threadpool(
+                store.list_agent_memory,
+                identity,
+                fruit=fruit,
+                limit=limit,
+            )
+        except SaaSStoreError as exc:
+            raise ApiProblem(400, "INVALID_MEMORY_QUERY", str(exc)) from exc
+        return AgentMemoryListResponse(memories=values, count=len(values))
+
+    @router.get(
+        "/workflow/tasks",
+        response_model=WorkflowTaskListResponse,
+        tags=["workflow"],
+        summary="List AI-created inspection workflow tasks",
+    )
+    async def workflow_tasks(
+        request: Request,
+        status: str | None = Query(None),
+        identity: str = Depends(authenticate_request),
+    ) -> WorkflowTaskListResponse:
+        store = _active_saas_store(request)
+        try:
+            values = await run_in_threadpool(
+                store.list_workflow_tasks,
+                identity,
+                status=status,
+            )
+        except SaaSStoreError as exc:
+            raise ApiProblem(400, "INVALID_TASK_QUERY", str(exc)) from exc
+        return WorkflowTaskListResponse(tasks=values, count=len(values))
+
+    @router.get(
+        "/notifications",
+        response_model=NotificationListResponse,
+        tags=["workflow"],
+        summary="List role-scoped in-product notifications",
+    )
+    async def notifications(
+        request: Request,
+        unread_only: bool = Query(False),
+        identity: str = Depends(authenticate_request),
+    ) -> NotificationListResponse:
+        store = _active_saas_store(request)
+        try:
+            values = await run_in_threadpool(
+                store.list_notifications,
+                identity,
+                unread_only=unread_only,
+            )
+        except SaaSStoreError as exc:
+            raise _store_problem() from exc
+        return NotificationListResponse(
+            notifications=values,
+            unread_count=sum(item["read_at_utc"] is None for item in values),
+        )
+
+    @router.post(
+        "/notifications/{notification_id}/read",
+        response_model=NotificationResponse,
+        tags=["workflow"],
+        summary="Mark one in-product notification as read",
+    )
+    async def mark_notification_read(
+        notification_id: str,
+        request: Request,
+        identity: str = Depends(authenticate_request),
+    ) -> NotificationResponse:
+        store = _active_saas_store(request)
+        try:
+            value = await run_in_threadpool(
+                store.mark_notification_read,
+                identity_hash=identity,
+                notification_id=notification_id,
+            )
+        except SaaSStoreError as exc:
+            raise ApiProblem(404, "NOTIFICATION_NOT_FOUND", str(exc)) from exc
+        return NotificationResponse.model_validate(value)
+
+    @router.get(
+        "/approvals",
+        response_model=ApprovalListResponse,
+        tags=["workflow"],
+        summary="List manager approval requests",
+    )
+    async def approvals(
+        request: Request,
+        status: str | None = Query(None),
+        identity: str = Depends(authenticate_request),
+    ) -> ApprovalListResponse:
+        await _require_workspace_role(request, identity, {"manager"})
+        store = _active_saas_store(request)
+        try:
+            values = await run_in_threadpool(store.list_approvals, identity, status=status)
+        except SaaSStoreError as exc:
+            raise ApiProblem(400, "INVALID_APPROVAL_QUERY", str(exc)) from exc
+        return ApprovalListResponse(approvals=values, count=len(values))
+
+    @router.patch(
+        "/approvals/{approval_id}",
+        response_model=ApprovalResponse,
+        tags=["workflow"],
+        summary="Approve or reject a high-risk agent proposal",
+    )
+    async def resolve_approval(
+        approval_id: str,
+        payload: ApprovalResolveRequest,
+        request: Request,
+        identity: str = Depends(authenticate_request),
+    ) -> ApprovalResponse:
+        await _require_workspace_role(request, identity, {"manager"})
+        store = _active_saas_store(request)
+        try:
+            value = await run_in_threadpool(
+                store.resolve_approval,
+                identity_hash=identity,
+                approval_id=approval_id,
+                decision=payload.decision,
+                note=payload.note,
+            )
+        except SaaSStoreError as exc:
+            raise ApiProblem(400, "INVALID_APPROVAL", str(exc)) from exc
+        return ApprovalResponse.model_validate(value)
+
+    @router.get(
+        "/reports/daily",
+        response_model=DailyQualityReportResponse,
+        tags=["workflow"],
+        summary="Generate a daily workspace quality report",
+    )
+    async def daily_report(
+        request: Request,
+        report_date: str | None = Query(None),
+        identity: str = Depends(authenticate_request),
+    ) -> DailyQualityReportResponse:
+        await _require_workspace_role(request, identity, {"manager", "reviewer"})
+        active_date = report_date or datetime.now(timezone.utc).date().isoformat()
+        store = _active_saas_store(request)
+        try:
+            value = await run_in_threadpool(store.daily_report, identity, active_date)
+        except SaaSStoreError as exc:
+            raise ApiProblem(400, "INVALID_REPORT_DATE", str(exc)) from exc
+        return DailyQualityReportResponse.model_validate(value)
+
     @router.get(
         "/inspections",
         response_model=InspectionListResponse,
@@ -814,9 +1095,30 @@ def create_app(
                 )
             except SaaSStoreError as exc:
                 raise _store_problem() from exc
+            agent_run_id: str | None = None
+            workflow_status = "completed"
+            try:
+                workflow_run = await run_in_threadpool(
+                    _active_autonomous_agent(request).run,
+                    identity_hash=identity,
+                    inspection_id=inspection["inspection_id"],
+                    mode="supervised",
+                )
+                agent_run_id = workflow_run["run_id"]
+            except Exception:
+                workflow_status = "failed"
+                logger.exception(
+                    "Inspection analysis completed but supervised workflow failed",
+                    extra={
+                        "event": "supervised_workflow_failed",
+                        "inspection_id": inspection["inspection_id"],
+                    },
+                )
             return InspectionAnalyzeResponse(
                 inspection=InspectionResponse.model_validate(inspection),
                 analysis=analysis,
+                workflow_status=workflow_status,
+                agent_run_id=agent_run_id,
             )
         finally:
             image.close()
@@ -832,6 +1134,17 @@ def _active_agent(request: Request) -> FruitScannerAgent:
             503,
             "SERVICE_NOT_READY",
             "FreshSense has not finished loading its models.",
+        )
+    return agent
+
+
+def _active_autonomous_agent(request: Request) -> AutonomousInspectionAgent:
+    agent = getattr(request.app.state, "autonomous_agent", None)
+    if agent is None:
+        raise ApiProblem(
+            503,
+            "AGENT_RUNTIME_UNAVAILABLE",
+            "FreshSense could not access its workflow-agent runtime.",
         )
     return agent
 

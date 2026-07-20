@@ -87,6 +87,61 @@ export type AnalyzeResult = {
       confidence: number;
     } | null;
   };
+  workflow_status: "completed" | "failed";
+  agent_run_id: string | null;
+};
+
+export type WorkflowTask = {
+  task_id: string;
+  inspection_id: string;
+  run_id: string;
+  task_type: string;
+  status: "open" | "completed" | "cancelled";
+  priority: "normal" | "high" | "urgent";
+  title: string;
+  instructions: string;
+  assigned_role: WorkspaceRole;
+  created_at_utc: string;
+  completed_at_utc: string | null;
+};
+
+export type NotificationItem = {
+  notification_id: string;
+  recipient_role: WorkspaceRole | "all";
+  kind: string;
+  title: string;
+  message: string;
+  related_type: string;
+  related_id: string;
+  created_at_utc: string;
+  read_at_utc: string | null;
+};
+
+export type Approval = {
+  approval_id: string;
+  inspection_id: string;
+  run_id: string;
+  action_type: "hold_batch";
+  status: "pending" | "approved" | "rejected";
+  rationale: string;
+  payload: Record<string, unknown>;
+  requested_at_utc: string;
+  resolved_at_utc: string | null;
+  resolution_note: string;
+};
+
+export type DailyQualityReport = {
+  report_date: string;
+  total_inspections: number;
+  rotten_flags: number;
+  uncertain_or_retake: number;
+  reviewed: number;
+  corrections: number;
+  open_tasks: number;
+  pending_approvals: number;
+  fruit_counts: Record<string, number>;
+  summary: string;
+  generated_at_utc: string;
 };
 
 export type WorkspaceInvitation = {

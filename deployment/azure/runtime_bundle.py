@@ -97,7 +97,10 @@ def _extract_safely(archive: Path, destination: Path) -> None:
             root = destination.resolve()
             expanded_bytes = 0
             for member in bundle.infolist():
-                if "\\" in member.filename:
+                # ZipInfo normalizes backslashes to forward slashes on Windows.
+                # Validate the original central-directory name so an archive has
+                # the same safety result on every deployment platform.
+                if "\\" in member.orig_filename:
                     raise RuntimeBundleError(
                         "The runtime bundle contains a non-POSIX path."
                     )

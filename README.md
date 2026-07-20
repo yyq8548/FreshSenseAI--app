@@ -2,7 +2,7 @@
 
 FreshSense is a browser-based fruit inspection workbench for small grocery
 stores and produce teams. Staff can check an incoming delivery or shelf batch
-with one representative fruit photo, record where the check happened, and send
+with one or a batch of representative fruit photos, record where the check happened, and send
 the result to a teammate for review. The current beta supports apples, bananas,
 and oranges.
 
@@ -15,15 +15,15 @@ and oranges.
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-2.19-orange)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.139-009688)
-![Tests](https://img.shields.io/badge/tests-149%20automated-brightgreen)
+![Tests](https://img.shields.io/badge/tests-175%20automated-brightgreen)
 ![Release](https://img.shields.io/badge/release-0.5.1%20Public%20Beta-blueviolet)
 
 ## Product overview
 
 Small grocery stores often inspect fruit by sight, then keep the result in
 memory or on paper. FreshSense gives that routine a shared record. For each
-delivery, display, or shelf batch, a staff member photographs one representative
-fruit, adds a location and batch reference, and runs the analysis. FreshSense
+delivery, display, or shelf batch, a staff member takes a photo with the device
+camera or selects up to 20 photos, adds a location and batch reference, and runs the analysis. FreshSense
 checks the visible condition, withholds labels it cannot support, and saves the
 result without retaining the uploaded photo.
 
@@ -45,12 +45,13 @@ procedures.
    Microsoft-hosted identity page. The first manager account opens a workspace;
    managers can create one-time invitation links for inspectors and reviewers.
 2. Choose **New inspection** in the workbench.
-3. Take or select a clear photo of one apple, banana, or orange. Keep one fruit
-   type in frame, move close enough to show the surface, and use even lighting.
+3. Use **Take photo** to open the device camera, or **Add multiple photos** to
+   select up to 20 images. Keep one fruit type in each frame.
 4. Enter the store location. Add a batch reference or operator note when that
    information is available.
-5. Select **Analyze and record**. FreshSense returns a fresh, rotten, uncertain,
-   unsupported, or retake result. Routine scans use the fast inference path.
+5. Start the batch. FreshSense compresses and analyzes each photo, triggers the
+   supervised workflow Agent, and sends an in-product and optional browser
+   notification when processing finishes.
 6. Check the fruit yourself before accepting the result. A reviewer can open
    **Review queue**, record the observed outcome, and save a correction when the
    model is wrong.
@@ -200,7 +201,14 @@ flowchart TD
     O --> P
     T --> P
     U --> P
-    P --> Q["Optionally save non-photo scan metadata locally"]
+    P --> Q{"Hosted team inspection?"}
+    Q -- "No" --> QA["Optionally save non-photo scan metadata locally"]
+    Q -- "Yes" --> QB["Record inspection metadata and trigger supervised Agent"]
+    QB --> QC["Read history, knowledge, and human-review memory"]
+    QC --> QD{"Policy decision"}
+    QD -- "Low risk" --> QE["Create task or notification"]
+    QD -- "High risk" --> QF["Wait for Manager approval"]
+    QD -- "Prohibited" --> QG["Block action"]
 ```
 
 ### Key design decisions
@@ -277,6 +285,9 @@ enabled only after the model reports ready.
 | Fictional insurance RAG companion | Implemented example | Citation-first semantic retrieval, abstention, typed API, human oversight, and evaluation over authored fictional data |
 | Azure readiness gate | Implemented, blocked by evidence | Fails closed until independent evaluation, pilot, tests, security review, and owner approvals exist |
 | Azure-native staging foundation | Deployed beta | App Service API, immutable model-bundle verification, PostgreSQL metadata, Static Web Apps, External ID, and `freshsenseai.com` without Docker |
+| Supervised workflow Agent | Implemented foundation | Uses typed tools, same-batch/store/fruit history, reviewed knowledge and memory, role tasks, notifications, manager approvals, and complete run/step auditing |
+| Camera and multi-photo batches | Implemented | Opens the device camera or accepts up to 20 photos, compresses each locally, reports progress, and notifies the employee when processing finishes |
+| Daily quality report | Implemented | Summarizes inspections, rotten flags, withheld results, human reviews, corrections, open tasks, approvals, and fruit mix |
 
 ### Not implemented yet
 
@@ -285,12 +296,21 @@ enabled only after the model reports ready.
 - hosted customer sign-up flow, billing, and account administration;
 - production SLOs, alerting, load tests, and an independently validated cloud benchmark;
 - an independently validated arbitrary-object detector and real-world benchmark;
-- completed human-reviewed pilot observations; and
+- completed human-reviewed pilot observations;
+- a durable server-side background job queue with restart recovery;
+- an LLM tool-selection planner and multi-step dynamic task decomposition;
+- a tested external inventory connector that applies approved batch holds;
 - trusted Authenticode signing by default (the release scripts support it, but a
   certificate must be configured).
 
 The current semantic RAG is fully functional without a vector database because
 the curated knowledge base is small enough for in-memory ranking.
+
+The current autonomous supervisor is deterministic and bounded. In supervised
+mode it can create internal tasks, notifications, approval requests, durable
+review memory, and daily reports. It cannot discard inventory, declare food
+safe, or modify an external inventory system. See the
+[autonomous agent architecture](docs/AUTONOMOUS_AGENT_ARCHITECTURE.md).
 
 ## Supported inputs and limitations
 
@@ -386,6 +406,16 @@ OpenAPI documentation is available at
 | `GET` | `/api/v1/inspections` | Lists workspace-scoped inspection metadata |
 | `POST` | `/api/v1/inspections/analyze` | Analyzes a photo and saves metadata without retaining the image |
 | `PATCH` | `/api/v1/inspections/{id}/review` | Confirms, corrects, or dismisses a result |
+| `POST` | `/api/v1/agent/runs` | Runs the bounded inspection supervisor and records one shadow proposal |
+| `GET` | `/api/v1/agent/runs` | Lists workspace-scoped agent runs and audit records |
+| `GET` | `/api/v1/agent/runs/{id}` | Returns one run with validated tool steps and policy decision |
+| `GET` | `/api/v1/agent/memory` | Lists durable human-review outcomes used by the supervisor |
+| `GET` | `/api/v1/workflow/tasks` | Lists role-scoped retake, review, and approved-action tasks |
+| `GET` | `/api/v1/notifications` | Lists in-product workflow and completion notifications |
+| `POST` | `/api/v1/notifications/{id}/read` | Marks a notification as read |
+| `GET` | `/api/v1/approvals` | Lists pending high-risk actions for managers |
+| `PATCH` | `/api/v1/approvals/{id}` | Approves or rejects a proposed batch hold |
+| `GET` | `/api/v1/reports/daily` | Generates the workspace quality report for one UTC day |
 
 Example:
 
@@ -426,8 +456,8 @@ independently validated production food-safety performance.
 - The REST API closes uploaded temporary resources before inference and does not
   retain the uploaded filename or image in application storage.
 - The SaaS inspection foundation stores result, location, batch, and human-review
-  metadata only. Uploaded image bytes and filenames are not written to its
-  database.
+  metadata plus Agent traces, tasks, notifications, approvals, and review memory.
+  Uploaded image bytes and filenames are not written to its database.
 - Desktop history stores only the scan timestamp, base filename, displayed
   result, accepted confidence, risk, decision, and status.
 - Desktop history is limited to 200 records and defaults to
@@ -571,6 +601,7 @@ fruit-specific rewrites when the catalog and model remain consistent.
 - [SaaS foundation development log](docs/DEVELOPMENT_LOG_SAAS_FOUNDATION.md)
 - [Entra External ID setup](docs/ENTRA_EXTERNAL_ID_SETUP.md)
 - [SaaS identity and web workbench development log](docs/DEVELOPMENT_LOG_SAAS_IDENTITY_WEB.md)
+- [Autonomous agent architecture and safety gates](docs/AUTONOMOUS_AGENT_ARCHITECTURE.md)
 - [FreshSense 0.4 development log](docs/DEVELOPMENT_LOG_FRESHSENSE_0_4.md)
 - [FreshSense 0.3 development log](docs/DEVELOPMENT_LOG_FRESHSENSE_0_3.md)
 - [Windows release development log](docs/DEVELOPMENT_LOG_WINDOWS_RELEASE.md)

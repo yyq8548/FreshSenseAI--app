@@ -24,10 +24,30 @@ from saas.database import (
 )
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 4
 REVIEW_STATUSES = frozenset({"pending", "confirmed", "corrected", "dismissed"})
 REVIEWED_OUTCOMES = frozenset({"fresh", "rotten", "unsupported", "uncertain"})
 WORKSPACE_ROLES = frozenset({"manager", "inspector", "reviewer"})
+AGENT_RUN_STATUSES = frozenset({"running", "completed", "failed", "cancelled"})
+AGENT_POLICY_DECISIONS = frozenset(
+    {"automatic", "approval_required", "prohibited"}
+)
+AGENT_ACTION_TYPES = frozenset(
+    {
+        "complete_without_action",
+        "request_retake",
+        "create_review_task",
+        "notify_manager",
+        "hold_batch",
+        "discard_inventory",
+        "declare_food_safe",
+    }
+)
+WORKFLOW_TASK_STATUSES = frozenset({"open", "completed", "cancelled"})
+APPROVAL_STATUSES = frozenset({"pending", "approved", "rejected"})
+ACTION_EXECUTION_STATUSES = frozenset(
+    {"pending", "shadow_only", "executed", "awaiting_approval", "blocked", "failed"}
+)
 
 
 class SaaSStoreError(RuntimeError):
@@ -36,6 +56,10 @@ class SaaSStoreError(RuntimeError):
 
 class InspectionNotFoundError(SaaSStoreError):
     """Raised when an inspection is absent from the authenticated workspace."""
+
+
+class AgentRunNotFoundError(SaaSStoreError):
+    """Raised when an agent run is absent from the authenticated workspace."""
 
 
 class SaaSStore:
@@ -147,6 +171,126 @@ class SaaSStore:
                         FOREIGN KEY(workspace_id) REFERENCES workspaces(workspace_id)
                     );
 
+                    CREATE TABLE IF NOT EXISTS agent_runs (
+                        run_id TEXT PRIMARY KEY,
+                        workspace_id TEXT NOT NULL,
+                        inspection_id TEXT NOT NULL,
+                        created_by_identity_hash TEXT NOT NULL,
+                        mode TEXT NOT NULL,
+                        objective TEXT NOT NULL,
+                        planner_version TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        max_steps INTEGER NOT NULL,
+                        steps_completed INTEGER NOT NULL,
+                        final_summary TEXT NOT NULL,
+                        error_code TEXT,
+                        created_at_utc TEXT NOT NULL,
+                        completed_at_utc TEXT,
+                        FOREIGN KEY(workspace_id) REFERENCES workspaces(workspace_id),
+                        FOREIGN KEY(inspection_id) REFERENCES inspections(inspection_id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS agent_steps (
+                        step_id TEXT PRIMARY KEY,
+                        run_id TEXT NOT NULL,
+                        workspace_id TEXT NOT NULL,
+                        step_index INTEGER NOT NULL,
+                        step_kind TEXT NOT NULL,
+                        tool_name TEXT,
+                        rationale TEXT NOT NULL,
+                        input_json TEXT NOT NULL,
+                        output_json TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        created_at_utc TEXT NOT NULL,
+                        FOREIGN KEY(run_id) REFERENCES agent_runs(run_id),
+                        FOREIGN KEY(workspace_id) REFERENCES workspaces(workspace_id),
+                        UNIQUE(run_id, step_index)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS action_proposals (
+                        proposal_id TEXT PRIMARY KEY,
+                        run_id TEXT NOT NULL,
+                        workspace_id TEXT NOT NULL,
+                        inspection_id TEXT NOT NULL,
+                        action_type TEXT NOT NULL,
+                        policy_decision TEXT NOT NULL,
+                        execution_status TEXT NOT NULL,
+                        rationale TEXT NOT NULL,
+                        payload_json TEXT NOT NULL,
+                        created_at_utc TEXT NOT NULL,
+                        resolved_at_utc TEXT,
+                        resolved_by_identity_hash TEXT,
+                        FOREIGN KEY(run_id) REFERENCES agent_runs(run_id),
+                        FOREIGN KEY(workspace_id) REFERENCES workspaces(workspace_id),
+                        FOREIGN KEY(inspection_id) REFERENCES inspections(inspection_id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS workflow_tasks (
+                        task_id TEXT PRIMARY KEY,
+                        workspace_id TEXT NOT NULL,
+                        inspection_id TEXT NOT NULL,
+                        run_id TEXT NOT NULL,
+                        task_type TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        priority TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        instructions TEXT NOT NULL,
+                        assigned_role TEXT NOT NULL,
+                        created_at_utc TEXT NOT NULL,
+                        completed_at_utc TEXT,
+                        FOREIGN KEY(workspace_id) REFERENCES workspaces(workspace_id),
+                        FOREIGN KEY(inspection_id) REFERENCES inspections(inspection_id),
+                        FOREIGN KEY(run_id) REFERENCES agent_runs(run_id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS notifications (
+                        notification_id TEXT PRIMARY KEY,
+                        workspace_id TEXT NOT NULL,
+                        recipient_role TEXT NOT NULL,
+                        kind TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        message TEXT NOT NULL,
+                        related_type TEXT NOT NULL,
+                        related_id TEXT NOT NULL,
+                        created_at_utc TEXT NOT NULL,
+                        read_at_utc TEXT,
+                        FOREIGN KEY(workspace_id) REFERENCES workspaces(workspace_id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS approval_requests (
+                        approval_id TEXT PRIMARY KEY,
+                        workspace_id TEXT NOT NULL,
+                        inspection_id TEXT NOT NULL,
+                        run_id TEXT NOT NULL,
+                        action_type TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        rationale TEXT NOT NULL,
+                        payload_json TEXT NOT NULL,
+                        requested_at_utc TEXT NOT NULL,
+                        resolved_at_utc TEXT,
+                        resolved_by_identity_hash TEXT,
+                        resolution_note TEXT NOT NULL,
+                        FOREIGN KEY(workspace_id) REFERENCES workspaces(workspace_id),
+                        FOREIGN KEY(inspection_id) REFERENCES inspections(inspection_id),
+                        FOREIGN KEY(run_id) REFERENCES agent_runs(run_id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS agent_memory (
+                        memory_id TEXT PRIMARY KEY,
+                        workspace_id TEXT NOT NULL,
+                        inspection_id TEXT NOT NULL,
+                        memory_kind TEXT NOT NULL,
+                        fruit TEXT,
+                        location_name TEXT NOT NULL,
+                        batch_reference TEXT NOT NULL,
+                        predicted_outcome TEXT,
+                        reviewed_outcome TEXT,
+                        content_json TEXT NOT NULL,
+                        created_at_utc TEXT NOT NULL,
+                        FOREIGN KEY(workspace_id) REFERENCES workspaces(workspace_id),
+                        FOREIGN KEY(inspection_id) REFERENCES inspections(inspection_id)
+                    );
+
                     CREATE INDEX IF NOT EXISTS idx_inspections_workspace_created
                         ON inspections(workspace_id, created_at_utc DESC);
                     CREATE INDEX IF NOT EXISTS idx_inspections_workspace_review
@@ -157,6 +301,20 @@ class SaaSStore:
                         ON workspace_memberships(workspace_id, role);
                     CREATE INDEX IF NOT EXISTS idx_invitations_workspace
                         ON workspace_invitations(workspace_id, created_at_utc DESC);
+                    CREATE INDEX IF NOT EXISTS idx_agent_runs_workspace_created
+                        ON agent_runs(workspace_id, created_at_utc DESC);
+                    CREATE INDEX IF NOT EXISTS idx_agent_steps_run
+                        ON agent_steps(run_id, step_index);
+                    CREATE INDEX IF NOT EXISTS idx_action_proposals_workspace
+                        ON action_proposals(workspace_id, created_at_utc DESC);
+                    CREATE INDEX IF NOT EXISTS idx_workflow_tasks_workspace_status
+                        ON workflow_tasks(workspace_id, status, created_at_utc DESC);
+                    CREATE INDEX IF NOT EXISTS idx_notifications_workspace_created
+                        ON notifications(workspace_id, created_at_utc DESC);
+                    CREATE INDEX IF NOT EXISTS idx_approvals_workspace_status
+                        ON approval_requests(workspace_id, status, requested_at_utc DESC);
+                    CREATE INDEX IF NOT EXISTS idx_agent_memory_workspace_created
+                        ON agent_memory(workspace_id, created_at_utc DESC);
                         """
                     )
                     row = connection.execute(
@@ -171,7 +329,7 @@ class SaaSStore:
                             """,
                             (str(SCHEMA_VERSION),),
                         )
-                    elif int(row["value"]) == 1:
+                    elif int(row["value"]) in {1, 2, 3}:
                         connection.execute(
                             "UPDATE saas_metadata SET value = ? WHERE key = 'schema_version'",
                             (str(SCHEMA_VERSION),),
@@ -505,14 +663,17 @@ class SaaSStore:
         workspace_id = self._workspace_id(identity_hash)
         now = _utc_now()
         with self._connect() as connection:
-            exists = connection.execute(
+            inspection = connection.execute(
                 """
-                SELECT 1 FROM inspections
-                WHERE workspace_id = ? AND inspection_id = ?
+                SELECT i.fruit, i.predicted_freshness, i.batch_reference,
+                       l.name AS location_name
+                FROM inspections i
+                JOIN locations l ON l.location_id = i.location_id
+                WHERE i.workspace_id = ? AND i.inspection_id = ?
                 """,
                 (workspace_id, inspection_id),
             ).fetchone()
-            if exists is None:
+            if inspection is None:
                 raise InspectionNotFoundError("Inspection not found in this workspace.")
             connection.execute(
                 """
@@ -546,6 +707,60 @@ class SaaSStore:
                     reviewed_outcome,
                     note,
                 ),
+            )
+            memory_content = {
+                "review_status": review_status,
+                "reviewed_outcome": reviewed_outcome,
+                "note": note,
+                "prediction_matched_review": (
+                    reviewed_outcome is not None
+                    and reviewed_outcome == inspection["predicted_freshness"]
+                ),
+            }
+            connection.execute(
+                """
+                INSERT INTO agent_memory(
+                    memory_id, workspace_id, inspection_id, memory_kind, fruit,
+                    location_name, batch_reference, predicted_outcome,
+                    reviewed_outcome, content_json, created_at_utc
+                ) VALUES (?, ?, ?, 'human_review', ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    str(uuid4()),
+                    workspace_id,
+                    inspection_id,
+                    inspection["fruit"],
+                    inspection["location_name"],
+                    inspection["batch_reference"],
+                    inspection["predicted_freshness"],
+                    reviewed_outcome,
+                    _bounded_json(memory_content, "memory_content", 100_000),
+                    now,
+                ),
+            )
+            connection.execute(
+                """
+                UPDATE workflow_tasks
+                SET status = 'completed', completed_at_utc = ?
+                WHERE workspace_id = ? AND inspection_id = ?
+                  AND status = 'open'
+                  AND task_type IN ('create_review_task', 'request_retake')
+                """,
+                (now, workspace_id, inspection_id),
+            )
+            self._insert_notification(
+                connection,
+                workspace_id=workspace_id,
+                recipient_role="manager",
+                kind="review_completed",
+                title="Human review completed",
+                message=(
+                    f"{inspection['location_name']}: {review_status} review recorded "
+                    f"for {inspection['fruit'] or 'unclassified input'}."
+                ),
+                related_type="inspection",
+                related_id=inspection_id,
+                created_at_utc=now,
             )
         return self.inspection(identity_hash, inspection_id)
 
@@ -590,6 +805,957 @@ class SaaSStore:
             "fruit_counts": fruit_counts,
             "decision_counts": decision_counts,
         }
+
+    def create_agent_run(
+        self,
+        *,
+        identity_hash: str,
+        inspection_id: str,
+        objective: str,
+        planner_version: str,
+        max_steps: int,
+        mode: str = "shadow",
+    ) -> dict[str, Any]:
+        if not 1 <= max_steps <= 20:
+            raise SaaSStoreError("Agent max_steps must be between 1 and 20.")
+        if mode not in {"shadow", "supervised"}:
+            raise SaaSStoreError("Agent mode is invalid.")
+        objective = _bounded_required(objective, "objective", 2000)
+        planner_version = _bounded_required(
+            planner_version,
+            "planner_version",
+            100,
+        )
+        workspace_id = self._workspace_id(identity_hash)
+        self._require_workspace_inspection(
+            workspace_id=workspace_id,
+            inspection_id=inspection_id,
+        )
+        run_id = str(uuid4())
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO agent_runs(
+                    run_id, workspace_id, inspection_id, created_by_identity_hash,
+                    mode, objective, planner_version, status, max_steps,
+                    steps_completed, final_summary, error_code, created_at_utc,
+                    completed_at_utc
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'running', ?, 0, '', NULL, ?, NULL)
+                """,
+                (
+                    run_id,
+                    workspace_id,
+                    inspection_id,
+                    identity_hash,
+                    mode,
+                    objective,
+                    planner_version,
+                    max_steps,
+                    _utc_now(),
+                ),
+            )
+        return self.agent_run(identity_hash, run_id)
+
+    def append_agent_step(
+        self,
+        *,
+        identity_hash: str,
+        run_id: str,
+        step_index: int,
+        step_kind: str,
+        tool_name: str | None,
+        rationale: str,
+        input_data: Mapping[str, Any],
+        output_data: Mapping[str, Any],
+        status: str,
+    ) -> dict[str, Any]:
+        if not 1 <= step_index <= 20:
+            raise SaaSStoreError("Agent step_index must be between 1 and 20.")
+        if step_kind not in {"tool", "finish"}:
+            raise SaaSStoreError("Agent step_kind is invalid.")
+        if status not in {"completed", "failed"}:
+            raise SaaSStoreError("Agent step status is invalid.")
+        workspace_id = self._workspace_id(identity_hash)
+        self._require_workspace_agent_run(
+            workspace_id=workspace_id,
+            run_id=run_id,
+            required_status="running",
+        )
+        rationale = _bounded_required(rationale, "rationale", 2000)
+        normalized_tool = (
+            _bounded_required(tool_name, "tool_name", 80)
+            if tool_name is not None
+            else None
+        )
+        input_json = _bounded_json(input_data, "input_data", 100_000)
+        output_json = _bounded_json(output_data, "output_data", 250_000)
+        step_id = str(uuid4())
+        now = _utc_now()
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO agent_steps(
+                    step_id, run_id, workspace_id, step_index, step_kind,
+                    tool_name, rationale, input_json, output_json, status,
+                    created_at_utc
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    step_id,
+                    run_id,
+                    workspace_id,
+                    step_index,
+                    step_kind,
+                    normalized_tool,
+                    rationale,
+                    input_json,
+                    output_json,
+                    status,
+                    now,
+                ),
+            )
+            connection.execute(
+                """
+                UPDATE agent_runs SET steps_completed = ?
+                WHERE workspace_id = ? AND run_id = ?
+                """,
+                (step_index, workspace_id, run_id),
+            )
+        return {
+            "step_id": step_id,
+            "run_id": run_id,
+            "step_index": step_index,
+            "step_kind": step_kind,
+            "tool_name": normalized_tool,
+            "rationale": rationale,
+            "input": json.loads(input_json),
+            "output": json.loads(output_json),
+            "status": status,
+            "created_at_utc": now,
+        }
+
+    def create_action_proposal(
+        self,
+        *,
+        identity_hash: str,
+        run_id: str,
+        inspection_id: str,
+        action_type: str,
+        policy_decision: str,
+        rationale: str,
+        payload: Mapping[str, Any],
+        execution_status: str = "shadow_only",
+    ) -> dict[str, Any]:
+        if policy_decision not in AGENT_POLICY_DECISIONS:
+            raise SaaSStoreError("Agent policy_decision is invalid.")
+        if action_type not in AGENT_ACTION_TYPES:
+            raise SaaSStoreError("Agent action_type is invalid.")
+        if execution_status not in ACTION_EXECUTION_STATUSES:
+            raise SaaSStoreError("Agent execution_status is invalid.")
+        workspace_id = self._workspace_id(identity_hash)
+        self._require_workspace_agent_run(
+            workspace_id=workspace_id,
+            run_id=run_id,
+            required_status="running",
+        )
+        self._require_workspace_inspection(
+            workspace_id=workspace_id,
+            inspection_id=inspection_id,
+        )
+        action_type = _bounded_required(action_type, "action_type", 80)
+        rationale = _bounded_required(rationale, "rationale", 2000)
+        payload_json = _bounded_json(payload, "payload", 100_000)
+        proposal_id = str(uuid4())
+        now = _utc_now()
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO action_proposals(
+                    proposal_id, run_id, workspace_id, inspection_id,
+                    action_type, policy_decision, execution_status, rationale,
+                    payload_json, created_at_utc, resolved_at_utc,
+                    resolved_by_identity_hash
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)
+                """,
+                (
+                    proposal_id,
+                    run_id,
+                    workspace_id,
+                    inspection_id,
+                    action_type,
+                    policy_decision,
+                    execution_status,
+                    rationale,
+                    payload_json,
+                    now,
+                ),
+            )
+        return {
+            "proposal_id": proposal_id,
+            "run_id": run_id,
+            "inspection_id": inspection_id,
+            "action_type": action_type,
+            "policy_decision": policy_decision,
+            "execution_status": execution_status,
+            "rationale": rationale,
+            "payload": json.loads(payload_json),
+            "created_at_utc": now,
+            "resolved_at_utc": None,
+        }
+
+    def complete_agent_run(
+        self,
+        *,
+        identity_hash: str,
+        run_id: str,
+        final_summary: str,
+    ) -> dict[str, Any]:
+        return self._finish_agent_run(
+            identity_hash=identity_hash,
+            run_id=run_id,
+            status="completed",
+            final_summary=_bounded_required(
+                final_summary,
+                "final_summary",
+                4000,
+            ),
+            error_code=None,
+        )
+
+    def fail_agent_run(
+        self,
+        *,
+        identity_hash: str,
+        run_id: str,
+        error_code: str,
+    ) -> dict[str, Any]:
+        return self._finish_agent_run(
+            identity_hash=identity_hash,
+            run_id=run_id,
+            status="failed",
+            final_summary="The bounded agent stopped before completing its workflow.",
+            error_code=_bounded_required(error_code, "error_code", 120),
+        )
+
+    def agent_run(self, identity_hash: str, run_id: str) -> dict[str, Any]:
+        workspace_id = self._workspace_id(identity_hash)
+        with self._connect() as connection:
+            run = connection.execute(
+                """
+                SELECT run_id, inspection_id, mode, objective, planner_version,
+                       status, max_steps, steps_completed, final_summary,
+                       error_code, created_at_utc, completed_at_utc
+                FROM agent_runs
+                WHERE workspace_id = ? AND run_id = ?
+                """,
+                (workspace_id, run_id),
+            ).fetchone()
+            if run is None:
+                raise AgentRunNotFoundError(
+                    "Agent run not found in this workspace."
+                )
+            steps = connection.execute(
+                """
+                SELECT step_id, run_id, step_index, step_kind, tool_name,
+                       rationale, input_json, output_json, status, created_at_utc
+                FROM agent_steps
+                WHERE workspace_id = ? AND run_id = ?
+                ORDER BY step_index
+                """,
+                (workspace_id, run_id),
+            ).fetchall()
+            proposals = connection.execute(
+                """
+                SELECT proposal_id, run_id, inspection_id, action_type,
+                       policy_decision, execution_status, rationale, payload_json,
+                       created_at_utc, resolved_at_utc
+                FROM action_proposals
+                WHERE workspace_id = ? AND run_id = ?
+                ORDER BY created_at_utc
+                """,
+                (workspace_id, run_id),
+            ).fetchall()
+        return {
+            **dict(run),
+            "steps": [_agent_step_record(row) for row in steps],
+            "action_proposals": [_action_proposal_record(row) for row in proposals],
+        }
+
+    def list_agent_runs(
+        self,
+        identity_hash: str,
+        *,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        if not 1 <= limit <= 100:
+            raise SaaSStoreError("limit must be between 1 and 100.")
+        workspace_id = self._workspace_id(identity_hash)
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT run_id FROM agent_runs
+                WHERE workspace_id = ?
+                ORDER BY created_at_utc DESC, run_id DESC LIMIT ?
+                """,
+                (workspace_id, limit),
+            ).fetchall()
+        return [self.agent_run(identity_hash, str(row["run_id"])) for row in rows]
+
+    def execute_agent_action(
+        self,
+        *,
+        identity_hash: str,
+        run_id: str,
+        proposal_id: str,
+        inspection_id: str,
+        action_type: str,
+        rationale: str,
+    ) -> dict[str, Any]:
+        """Execute only reversible workflow actions inside FreshSense."""
+        if action_type not in {
+            "complete_without_action",
+            "request_retake",
+            "create_review_task",
+            "notify_manager",
+        }:
+            raise SaaSStoreError("This agent action cannot execute automatically.")
+        workspace_id = self._workspace_id(identity_hash)
+        self._require_workspace_agent_run(
+            workspace_id=workspace_id,
+            run_id=run_id,
+            required_status="running",
+        )
+        inspection = self.inspection(identity_hash, inspection_id)
+        now = _utc_now()
+        task: dict[str, Any] | None = None
+        notification: dict[str, Any] | None = None
+        with self._connect() as connection:
+            proposal = connection.execute(
+                """
+                SELECT execution_status FROM action_proposals
+                WHERE workspace_id = ? AND run_id = ? AND proposal_id = ?
+                """,
+                (workspace_id, run_id, proposal_id),
+            ).fetchone()
+            if proposal is None or proposal["execution_status"] != "pending":
+                raise SaaSStoreError("The agent proposal is not executable.")
+
+            if action_type in {"request_retake", "create_review_task"}:
+                task_id = str(uuid4())
+                is_retake = action_type == "request_retake"
+                title = "Retake fruit photo" if is_retake else "Review AI inspection"
+                assigned_role = "inspector" if is_retake else "reviewer"
+                priority = "normal" if is_retake else "high"
+                connection.execute(
+                    """
+                    INSERT INTO workflow_tasks(
+                        task_id, workspace_id, inspection_id, run_id, task_type,
+                        status, priority, title, instructions, assigned_role,
+                        created_at_utc, completed_at_utc
+                    ) VALUES (?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, NULL)
+                    """,
+                    (
+                        task_id,
+                        workspace_id,
+                        inspection_id,
+                        run_id,
+                        action_type,
+                        priority,
+                        title,
+                        rationale,
+                        assigned_role,
+                        now,
+                    ),
+                )
+                task = {
+                    "task_id": task_id,
+                    "task_type": action_type,
+                    "status": "open",
+                    "assigned_role": assigned_role,
+                }
+                notification = self._insert_notification(
+                    connection,
+                    workspace_id=workspace_id,
+                    recipient_role=assigned_role,
+                    kind="workflow_task_created",
+                    title=title,
+                    message=(
+                        f"{inspection.get('location_name')}: {rationale}"
+                    ),
+                    related_type="task",
+                    related_id=task_id,
+                    created_at_utc=now,
+                )
+            elif action_type == "notify_manager":
+                notification = self._insert_notification(
+                    connection,
+                    workspace_id=workspace_id,
+                    recipient_role="manager",
+                    kind="manager_attention",
+                    title="Inspection needs manager attention",
+                    message=rationale,
+                    related_type="inspection",
+                    related_id=inspection_id,
+                    created_at_utc=now,
+                )
+
+            connection.execute(
+                """
+                UPDATE action_proposals
+                SET execution_status = 'executed', resolved_at_utc = ?,
+                    resolved_by_identity_hash = ?
+                WHERE workspace_id = ? AND proposal_id = ?
+                """,
+                (now, identity_hash, workspace_id, proposal_id),
+            )
+        return {"status": "executed", "task": task, "notification": notification}
+
+    def request_agent_approval(
+        self,
+        *,
+        identity_hash: str,
+        run_id: str,
+        proposal_id: str,
+        inspection_id: str,
+        action_type: str,
+        rationale: str,
+        payload: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        if action_type != "hold_batch":
+            raise SaaSStoreError("Only batch holds use the approval workflow.")
+        workspace_id = self._workspace_id(identity_hash)
+        self._require_workspace_agent_run(
+            workspace_id=workspace_id,
+            run_id=run_id,
+            required_status="running",
+        )
+        approval_id = str(uuid4())
+        now = _utc_now()
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO approval_requests(
+                    approval_id, workspace_id, inspection_id, run_id,
+                    action_type, status, rationale, payload_json,
+                    requested_at_utc, resolved_at_utc,
+                    resolved_by_identity_hash, resolution_note
+                ) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, NULL, NULL, '')
+                """,
+                (
+                    approval_id,
+                    workspace_id,
+                    inspection_id,
+                    run_id,
+                    action_type,
+                    _bounded_required(rationale, "rationale", 2000),
+                    _bounded_json(payload, "payload", 100_000),
+                    now,
+                ),
+            )
+            self._insert_notification(
+                connection,
+                workspace_id=workspace_id,
+                recipient_role="manager",
+                kind="approval_requested",
+                title="Batch hold requires approval",
+                message=rationale,
+                related_type="approval",
+                related_id=approval_id,
+                created_at_utc=now,
+            )
+            connection.execute(
+                """
+                UPDATE action_proposals SET execution_status = 'awaiting_approval'
+                WHERE workspace_id = ? AND proposal_id = ?
+                  AND execution_status = 'pending'
+                """,
+                (workspace_id, proposal_id),
+            )
+        return self.approval(identity_hash, approval_id)
+
+    def set_action_proposal_status(
+        self,
+        *,
+        identity_hash: str,
+        proposal_id: str,
+        execution_status: str,
+    ) -> None:
+        if execution_status not in ACTION_EXECUTION_STATUSES - {"pending"}:
+            raise SaaSStoreError("Agent execution_status is invalid.")
+        workspace_id = self._workspace_id(identity_hash)
+        with self._connect() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE action_proposals
+                SET execution_status = ?, resolved_at_utc = ?,
+                    resolved_by_identity_hash = ?
+                WHERE workspace_id = ? AND proposal_id = ?
+                  AND execution_status = 'pending'
+                """,
+                (
+                    execution_status,
+                    _utc_now(),
+                    identity_hash,
+                    workspace_id,
+                    proposal_id,
+                ),
+            )
+        if cursor.rowcount != 1:
+            raise SaaSStoreError("The agent proposal could not be resolved.")
+
+    def notify_analysis_completed(
+        self,
+        *,
+        identity_hash: str,
+        inspection_id: str,
+        message: str,
+    ) -> dict[str, Any]:
+        workspace_id = self._workspace_id(identity_hash)
+        now = _utc_now()
+        with self._connect() as connection:
+            return self._insert_notification(
+                connection,
+                workspace_id=workspace_id,
+                recipient_role="all",
+                kind="inspection_completed",
+                title="Fruit inspection completed",
+                message=message,
+                related_type="inspection",
+                related_id=inspection_id,
+                created_at_utc=now,
+            )
+
+    def list_workflow_tasks(
+        self,
+        identity_hash: str,
+        *,
+        status: str | None = None,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        if status is not None and status not in WORKFLOW_TASK_STATUSES:
+            raise SaaSStoreError("Workflow task status is invalid.")
+        if not 1 <= limit <= 200:
+            raise SaaSStoreError("limit must be between 1 and 200.")
+        workspace_id = self._workspace_id(identity_hash)
+        role = self._workspace_role(workspace_id, identity_hash)
+        query = """
+            SELECT * FROM workflow_tasks
+            WHERE workspace_id = ? AND (assigned_role = ? OR ? = 'manager')
+        """
+        values: list[Any] = [workspace_id, role, role]
+        if status is not None:
+            query += " AND status = ?"
+            values.append(status)
+        query += " ORDER BY created_at_utc DESC, task_id DESC LIMIT ?"
+        values.append(limit)
+        with self._connect() as connection:
+            rows = connection.execute(query, values).fetchall()
+        return [self._public_row(row, "workspace_id") for row in rows]
+
+    def list_notifications(
+        self,
+        identity_hash: str,
+        *,
+        unread_only: bool = False,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        if not 1 <= limit <= 200:
+            raise SaaSStoreError("limit must be between 1 and 200.")
+        workspace_id = self._workspace_id(identity_hash)
+        role = self._workspace_role(workspace_id, identity_hash)
+        query = """
+            SELECT * FROM notifications
+            WHERE workspace_id = ? AND recipient_role IN (?, 'all')
+        """
+        values: list[Any] = [workspace_id, role]
+        if unread_only:
+            query += " AND read_at_utc IS NULL"
+        query += " ORDER BY created_at_utc DESC, notification_id DESC LIMIT ?"
+        values.append(limit)
+        with self._connect() as connection:
+            rows = connection.execute(query, values).fetchall()
+        return [self._public_row(row, "workspace_id") for row in rows]
+
+    def mark_notification_read(
+        self,
+        *,
+        identity_hash: str,
+        notification_id: str,
+    ) -> dict[str, Any]:
+        workspace_id = self._workspace_id(identity_hash)
+        role = self._workspace_role(workspace_id, identity_hash)
+        with self._connect() as connection:
+            connection.execute(
+                """
+                UPDATE notifications SET read_at_utc = ?
+                WHERE workspace_id = ? AND notification_id = ?
+                  AND recipient_role IN (?, 'all')
+                """,
+                (_utc_now(), workspace_id, notification_id, role),
+            )
+            row = connection.execute(
+                """
+                SELECT * FROM notifications
+                WHERE workspace_id = ? AND notification_id = ?
+                  AND recipient_role IN (?, 'all')
+                """,
+                (workspace_id, notification_id, role),
+            ).fetchone()
+        if row is None:
+            raise SaaSStoreError("Notification not found in this workspace.")
+        return self._public_row(row, "workspace_id")
+
+    def list_approvals(
+        self,
+        identity_hash: str,
+        *,
+        status: str | None = None,
+    ) -> list[dict[str, Any]]:
+        if status is not None and status not in APPROVAL_STATUSES:
+            raise SaaSStoreError("Approval status is invalid.")
+        workspace_id = self._workspace_id(identity_hash)
+        query = "SELECT * FROM approval_requests WHERE workspace_id = ?"
+        values: list[Any] = [workspace_id]
+        if status is not None:
+            query += " AND status = ?"
+            values.append(status)
+        query += " ORDER BY requested_at_utc DESC, approval_id DESC"
+        with self._connect() as connection:
+            rows = connection.execute(query, values).fetchall()
+        return [self._approval_record(row) for row in rows]
+
+    def approval(self, identity_hash: str, approval_id: str) -> dict[str, Any]:
+        workspace_id = self._workspace_id(identity_hash)
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM approval_requests WHERE workspace_id = ? AND approval_id = ?",
+                (workspace_id, approval_id),
+            ).fetchone()
+        if row is None:
+            raise SaaSStoreError("Approval not found in this workspace.")
+        return self._approval_record(row)
+
+    def resolve_approval(
+        self,
+        *,
+        identity_hash: str,
+        approval_id: str,
+        decision: str,
+        note: str,
+    ) -> dict[str, Any]:
+        if decision not in {"approved", "rejected"}:
+            raise SaaSStoreError("Approval decision is invalid.")
+        workspace_id = self._workspace_id(identity_hash)
+        if self._workspace_role(workspace_id, identity_hash) != "manager":
+            raise SaaSStoreError("Only a workspace manager can resolve approvals.")
+        note = _bounded_optional(note, "note", 1000)
+        now = _utc_now()
+        with self._connect() as connection:
+            approval = connection.execute(
+                """
+                SELECT * FROM approval_requests
+                WHERE workspace_id = ? AND approval_id = ? AND status = 'pending'
+                """,
+                (workspace_id, approval_id),
+            ).fetchone()
+            if approval is None:
+                raise SaaSStoreError("The approval is not pending.")
+            connection.execute(
+                """
+                UPDATE approval_requests
+                SET status = ?, resolved_at_utc = ?,
+                    resolved_by_identity_hash = ?, resolution_note = ?
+                WHERE workspace_id = ? AND approval_id = ?
+                """,
+                (decision, now, identity_hash, note, workspace_id, approval_id),
+            )
+            proposal_status = "executed" if decision == "approved" else "blocked"
+            connection.execute(
+                """
+                UPDATE action_proposals
+                SET execution_status = ?, resolved_at_utc = ?,
+                    resolved_by_identity_hash = ?
+                WHERE workspace_id = ? AND run_id = ? AND action_type = ?
+                """,
+                (
+                    proposal_status,
+                    now,
+                    identity_hash,
+                    workspace_id,
+                    approval["run_id"],
+                    approval["action_type"],
+                ),
+            )
+            if decision == "approved":
+                task_id = str(uuid4())
+                connection.execute(
+                    """
+                    INSERT INTO workflow_tasks(
+                        task_id, workspace_id, inspection_id, run_id, task_type,
+                        status, priority, title, instructions, assigned_role,
+                        created_at_utc, completed_at_utc
+                    ) VALUES (?, ?, ?, ?, 'approved_hold_batch', 'open', 'urgent',
+                              'Apply approved batch hold', ?, 'manager', ?, NULL)
+                    """,
+                    (
+                        task_id,
+                        workspace_id,
+                        approval["inspection_id"],
+                        approval["run_id"],
+                        approval["rationale"],
+                        now,
+                    ),
+                )
+            self._insert_notification(
+                connection,
+                workspace_id=workspace_id,
+                recipient_role="all",
+                kind="approval_resolved",
+                title=f"Batch hold {decision}",
+                message=note or f"A manager {decision} the proposed batch hold.",
+                related_type="approval",
+                related_id=approval_id,
+                created_at_utc=now,
+            )
+        return self.approval(identity_hash, approval_id)
+
+    def list_agent_memory(
+        self,
+        identity_hash: str,
+        *,
+        fruit: str | None = None,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        workspace_id = self._workspace_id(identity_hash)
+        query = "SELECT * FROM agent_memory WHERE workspace_id = ?"
+        values: list[Any] = [workspace_id]
+        if fruit:
+            query += " AND fruit = ?"
+            values.append(_bounded_required(fruit, "fruit", 80))
+        query += " ORDER BY created_at_utc DESC, memory_id DESC LIMIT ?"
+        values.append(max(1, min(limit, 200)))
+        with self._connect() as connection:
+            rows = connection.execute(query, values).fetchall()
+        records = []
+        for row in rows:
+            value = self._public_row(row, "workspace_id")
+            value["content"] = json.loads(value.pop("content_json"))
+            records.append(value)
+        return records
+
+    def daily_report(self, identity_hash: str, report_date: str) -> dict[str, Any]:
+        try:
+            day = datetime.strptime(report_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        except ValueError as exc:
+            raise SaaSStoreError("report_date must use YYYY-MM-DD.") from exc
+        start = day.isoformat()
+        end = (day + timedelta(days=1)).isoformat()
+        workspace_id = self._workspace_id(identity_hash)
+        with self._connect() as connection:
+            inspections = connection.execute(
+                """
+                SELECT predicted_freshness, decision, review_status, reviewed_outcome,
+                       fruit, confidence FROM inspections
+                WHERE workspace_id = ? AND created_at_utc >= ? AND created_at_utc < ?
+                """,
+                (workspace_id, start, end),
+            ).fetchall()
+            open_tasks = connection.execute(
+                "SELECT COUNT(*) AS count FROM workflow_tasks WHERE workspace_id = ? AND status = 'open'",
+                (workspace_id,),
+            ).fetchone()
+            pending_approvals = connection.execute(
+                "SELECT COUNT(*) AS count FROM approval_requests WHERE workspace_id = ? AND status = 'pending'",
+                (workspace_id,),
+            ).fetchone()
+        total = len(inspections)
+        rotten = sum(row["predicted_freshness"] == "rotten" for row in inspections)
+        uncertain = sum(
+            row["decision"] in {"unsupported_input", "uncertain_input", "retake_photo"}
+            for row in inspections
+        )
+        reviewed = sum(row["review_status"] != "pending" for row in inspections)
+        corrections = sum(row["review_status"] == "corrected" for row in inspections)
+        fruit_counts: dict[str, int] = {}
+        for row in inspections:
+            key = row["fruit"] or "unclassified"
+            fruit_counts[key] = fruit_counts.get(key, 0) + 1
+        narrative = (
+            f"{total} inspections were recorded on {report_date}; {rotten} were flagged "
+            f"with visible rotten patterns, {uncertain} required retake or review, and "
+            f"{reviewed} received human review."
+        )
+        return {
+            "report_date": report_date,
+            "total_inspections": total,
+            "rotten_flags": rotten,
+            "uncertain_or_retake": uncertain,
+            "reviewed": reviewed,
+            "corrections": corrections,
+            "open_tasks": int(open_tasks["count"] if open_tasks else 0),
+            "pending_approvals": int(
+                pending_approvals["count"] if pending_approvals else 0
+            ),
+            "fruit_counts": fruit_counts,
+            "summary": narrative,
+            "generated_at_utc": _utc_now(),
+        }
+
+    def _finish_agent_run(
+        self,
+        *,
+        identity_hash: str,
+        run_id: str,
+        status: str,
+        final_summary: str,
+        error_code: str | None,
+    ) -> dict[str, Any]:
+        if status not in AGENT_RUN_STATUSES - {"running"}:
+            raise SaaSStoreError("Agent terminal status is invalid.")
+        workspace_id = self._workspace_id(identity_hash)
+        self._require_workspace_agent_run(
+            workspace_id=workspace_id,
+            run_id=run_id,
+            required_status="running",
+        )
+        with self._connect() as connection:
+            connection.execute(
+                """
+                UPDATE agent_runs
+                SET status = ?, final_summary = ?, error_code = ?,
+                    completed_at_utc = ?
+                WHERE workspace_id = ? AND run_id = ? AND status = 'running'
+                """,
+                (
+                    status,
+                    final_summary,
+                    error_code,
+                    _utc_now(),
+                    workspace_id,
+                    run_id,
+                ),
+            )
+        return self.agent_run(identity_hash, run_id)
+
+    def _require_workspace_inspection(
+        self,
+        *,
+        workspace_id: str,
+        inspection_id: str,
+    ) -> None:
+        inspection_id = _bounded_required(
+            inspection_id,
+            "inspection_id",
+            64,
+        )
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT 1 FROM inspections
+                WHERE workspace_id = ? AND inspection_id = ?
+                """,
+                (workspace_id, inspection_id),
+            ).fetchone()
+        if row is None:
+            raise InspectionNotFoundError("Inspection not found in this workspace.")
+
+    def _require_workspace_agent_run(
+        self,
+        *,
+        workspace_id: str,
+        run_id: str,
+        required_status: str | None = None,
+    ) -> None:
+        run_id = _bounded_required(run_id, "run_id", 64)
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT status FROM agent_runs
+                WHERE workspace_id = ? AND run_id = ?
+                """,
+                (workspace_id, run_id),
+            ).fetchone()
+        if row is None:
+            raise AgentRunNotFoundError("Agent run not found in this workspace.")
+        if required_status is not None and row["status"] != required_status:
+            raise SaaSStoreError(
+                f"Agent run must be {required_status} for this operation."
+            )
+
+    def _workspace_role(self, workspace_id: str, identity_hash: str) -> str:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT role FROM workspace_memberships
+                WHERE workspace_id = ? AND identity_hash = ?
+                """,
+                (workspace_id, identity_hash),
+            ).fetchone()
+        if row is None:
+            raise SaaSStoreError("Workspace membership is unavailable.")
+        return str(row["role"])
+
+    @staticmethod
+    def _insert_notification(
+        connection: DatabaseConnection,
+        *,
+        workspace_id: str,
+        recipient_role: str,
+        kind: str,
+        title: str,
+        message: str,
+        related_type: str,
+        related_id: str,
+        created_at_utc: str,
+    ) -> dict[str, Any]:
+        if recipient_role not in WORKSPACE_ROLES | {"all"}:
+            raise SaaSStoreError("Notification recipient role is invalid.")
+        notification_id = str(uuid4())
+        title = _bounded_required(title, "title", 200)
+        message = _bounded_required(message, "message", 2000)
+        connection.execute(
+            """
+            INSERT INTO notifications(
+                notification_id, workspace_id, recipient_role, kind, title,
+                message, related_type, related_id, created_at_utc, read_at_utc
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+            """,
+            (
+                notification_id,
+                workspace_id,
+                recipient_role,
+                _bounded_required(kind, "kind", 80),
+                title,
+                message,
+                _bounded_required(related_type, "related_type", 80),
+                _bounded_required(related_id, "related_id", 80),
+                created_at_utc,
+            ),
+        )
+        return {
+            "notification_id": notification_id,
+            "recipient_role": recipient_role,
+            "kind": kind,
+            "title": title,
+            "message": message,
+            "related_type": related_type,
+            "related_id": related_id,
+            "created_at_utc": created_at_utc,
+            "read_at_utc": None,
+        }
+
+    @staticmethod
+    def _public_row(row: Mapping[str, Any], *hidden: str) -> dict[str, Any]:
+        value = dict(row)
+        for key in hidden:
+            value.pop(key, None)
+        return value
+
+    @classmethod
+    def _approval_record(cls, row: Mapping[str, Any]) -> dict[str, Any]:
+        value = cls._public_row(row, "workspace_id", "resolved_by_identity_hash")
+        value["payload"] = json.loads(value.pop("payload_json"))
+        return value
 
     def _workspace_id(self, identity_hash: str) -> str:
         identity_hash = _bounded_required(identity_hash, "identity_hash", 128)
@@ -737,6 +1903,19 @@ def _member_record(row: Mapping[str, Any]) -> dict[str, Any]:
     return value
 
 
+def _agent_step_record(row: Mapping[str, Any]) -> dict[str, Any]:
+    value = dict(row)
+    value["input"] = json.loads(value.pop("input_json"))
+    value["output"] = json.loads(value.pop("output_json"))
+    return value
+
+
+def _action_proposal_record(row: Mapping[str, Any]) -> dict[str, Any]:
+    value = dict(row)
+    value["payload"] = json.loads(value.pop("payload_json"))
+    return value
+
+
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -755,6 +1934,16 @@ def _bounded_optional(value: str, name: str, maximum: int) -> str:
     if len(normalized) > maximum:
         raise SaaSStoreError(f"{name} exceeds {maximum} characters.")
     return normalized
+
+
+def _bounded_json(value: Mapping[str, Any], name: str, maximum: int) -> str:
+    try:
+        serialized = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+    except (TypeError, ValueError) as exc:
+        raise SaaSStoreError(f"{name} must be JSON serializable.") from exc
+    if len(serialized.encode("utf-8")) > maximum:
+        raise SaaSStoreError(f"{name} exceeds {maximum} bytes.")
+    return serialized
 
 
 def _optional_profile_value(value: str | None, maximum: int) -> str | None:

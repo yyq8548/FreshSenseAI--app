@@ -1,6 +1,6 @@
 from hashlib import sha256
 import json
-from zipfile import ZipFile
+from zipfile import ZipFile, ZipInfo
 
 import pytest
 
@@ -64,8 +64,13 @@ def test_runtime_extraction_rejects_zip_path_traversal(tmp_path):
 
 def test_runtime_extraction_rejects_windows_path_separators(tmp_path):
     archive = tmp_path / "windows-paths.zip"
+    member = ZipInfo("placeholder")
+    # Assign after construction because ZipInfo normalizes separators on
+    # Windows. This creates the same malicious central-directory entry on
+    # every test platform.
+    member.filename = "models\\densenet201.h5"
     with ZipFile(archive, "w") as bundle:
-        bundle.writestr("models\\densenet201.h5", "unsafe-on-linux")
+        bundle.writestr(member, "unsafe-on-linux")
 
     with pytest.raises(RuntimeBundleError, match="non-POSIX path"):
         _extract_safely(archive, tmp_path / "output")
