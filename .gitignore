@@ -10,6 +10,7 @@ work/
 .worktrees/
 web/node_modules/
 web/dist/
+web/public/demo/
 web/.env.local
 web/*.tsbuildinfo
 web/work/
