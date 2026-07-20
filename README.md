@@ -131,7 +131,6 @@ This is a development measurement, not a production latency guarantee. Model
 confidence applies only to the 12 configured classes; the model card documents
 the test data, gating results, and remaining real-world validation gaps.
 
-![FreshSense AI Windows application](docs/images/freshsense-desktop-overview.png)
 
 ## Windows desktop beta
 
