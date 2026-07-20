@@ -15,8 +15,8 @@ describe('FreshSense timeline', () => {
     ]);
   });
 
-  it('keeps the 138-word approved narration', () => {
-    expect(NARRATION_TEXT.trim().split(/\s+/)).toHaveLength(138);
+  it('keeps the 112-word final calibrated narration', () => {
+    expect(NARRATION_TEXT.trim().split(/\s+/)).toHaveLength(112);
   });
 
   it('resolves boundary frames to the correct scene', () => {

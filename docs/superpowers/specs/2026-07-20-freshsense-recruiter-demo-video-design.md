@@ -63,11 +63,11 @@ The final narration may be tightened after the voice test, but it must preserve 
 | 0:50 to 0:56 | Manager tools | Fast cut from `manager-chat.png` to `daily-report.png` | Managers ask grounded questions about inspection history and Agent decisions, then check the daily report. | `Grounded Manager Chat`, `Daily quality report` |
 | 0:56 to 1:00 | Stack and call to action | Closing card with product URL, repository, and a compact stack line | FreshSense runs on Python, TensorFlow, FastAPI, React, PostgreSQL, and Azure. Try the live beta or review the code on GitHub. | `freshsenseai.com`, `github.com/yyq8548/FreshSenseAI--app` |
 
-## Working voiceover
+## Final calibrated voiceover
 
-This 138-word script is the timing baseline:
+This 112-word script is the final calibrated voiceover:
 
-> Fruit checks happen fast, but the record often disappears with the shift. FreshSense gives small grocery teams one place to inspect fruit and follow review work. Staff can take a photo or add twenty images at once. The model covers apples, bananas, oranges, mangoes, tomatoes, and pears. Photos are not stored by default. A DenseNet201 classifier looks for visible fresh or rotten patterns. A separate gate withholds unclear or unsupported inputs instead of forcing a label. Next, a bounded Agent checks history and reviewed guidance, creates follow-up tasks, and notifies staff. High-risk actions require manager approval. Staff confirm or correct results in the review queue. Managers ask grounded questions about inspection history and Agent decisions, then check the daily report. FreshSense runs on Python, TensorFlow, FastAPI, React, PostgreSQL, and Azure. Try freshsenseai.com, or view the code on GitHub.
+> Fruit checks happen fast, but the record often disappears with the shift. FreshSense gives grocery teams a shared inspection record. Staff can add a photo or batch of twenty. The model covers apples, bananas, oranges, mangoes, tomatoes, and pears. Photos are not stored by default. DenseNet201 looks for visible fresh or rotten patterns. A separate gate withholds unclear or unsupported inputs. A bounded Agent checks history and reviewed guidance, creates follow-up tasks, and notifies staff. High-risk actions require manager approval. Staff confirm or correct results. Managers ask grounded questions and check the daily report. FreshSense runs on Python, TensorFlow, FastAPI, React, PostgreSQL, and Azure. Try freshsenseai.com or view the code on GitHub.
 
 ## Narration constraints
 
