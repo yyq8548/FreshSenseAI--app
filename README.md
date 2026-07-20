@@ -80,7 +80,6 @@ FreshSense stores the result, location, batch reference, note, review status,
 and timestamps. It does not write uploaded image bytes or filenames to the
 workspace database.
 
-[Watch the 30-second Windows beta walkthrough](docs/demo/freshsense-public-beta-demo.mp4)
 
 ## Technology and AI
 
@@ -124,7 +123,6 @@ This is a development measurement, not a production latency guarantee. Model
 confidence applies only to the 12 configured classes; the model card documents
 the test data, gating results, and remaining real-world validation gaps.
 
-![FreshSense AI Windows application](docs/images/freshsense-desktop-overview.png)
 
 ## Windows desktop beta
 
