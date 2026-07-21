@@ -62,6 +62,7 @@ def test_config_rejects_non_http_api_url():
     "credentials",
     [
         {},
+        {"api_key": "   "},
         {"api_key": "key", "bearer_token": "token"},
     ],
 )
@@ -170,13 +171,23 @@ def test_recent_inspections_rejects_malformed_api_envelope():
         client.get_recent_inspections()
 
 
-def test_default_sender_rejects_redirect_without_forwarding_credentials():
+@pytest.mark.parametrize(
+    ("credential_name", "header_name"),
+    [
+        ("api_key", "X-API-Key"),
+        ("bearer_token", "Authorization"),
+    ],
+)
+def test_default_sender_rejects_redirect_without_forwarding_credentials(
+    credential_name,
+    header_name,
+):
     secret = "redirect-secret-that-must-not-leave-origin"
     captured_credentials: list[str | None] = []
 
     class TargetHandler(BaseHTTPRequestHandler):
         def do_GET(self):
-            captured_credentials.append(self.headers.get("X-API-Key"))
+            captured_credentials.append(self.headers.get(header_name))
             body = json.dumps(_payload()).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -210,7 +221,7 @@ def test_default_sender_rejects_redirect_without_forwarding_credentials():
         client = FreshSenseApiClient(
             MCPConfig(
                 api_url=f"http://127.0.0.1:{source.server_port}",
-                api_key=secret,
+                **{credential_name: secret},
             )
         )
         with pytest.raises(FreshSenseMCPError, match="redirect"):

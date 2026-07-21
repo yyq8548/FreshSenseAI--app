@@ -21,8 +21,8 @@ class MCPConfig:
 
     def __post_init__(self) -> None:
         api_url = self.api_url.strip().rstrip("/")
-        api_key = self.api_key.strip() if self.api_key else None
-        bearer_token = self.bearer_token.strip() if self.bearer_token else None
+        api_key = (self.api_key or "").strip() or None
+        bearer_token = (self.bearer_token or "").strip() or None
 
         parsed = urlparse(api_url)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:

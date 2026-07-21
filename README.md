@@ -13,7 +13,7 @@ tomatoes, and pears.
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-2.19-orange)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.139-009688)
-![Tests](https://img.shields.io/badge/tests-205%20Python%20%2B%2010%20web-brightgreen)
+![Tests](https://img.shields.io/badge/tests-207%20Python%20%2B%2010%20web-brightgreen)
 ![Release](https://img.shields.io/badge/release-0.6.0%20Public%20Beta-blueviolet)
 
 ## 60-second product demo
