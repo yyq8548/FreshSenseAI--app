@@ -1,5 +1,9 @@
 import asyncio
 
+import pytest
+
+pytest.importorskip("mcp_use", reason="optional MCP runtime is not installed")
+
 from scripts.smoke_mcp_integration import run_smoke
 
 

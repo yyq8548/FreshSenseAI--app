@@ -1,5 +1,9 @@
 import asyncio
 
+import pytest
+
+pytest.importorskip("mcp_use", reason="optional MCP runtime is not installed")
+
 from freshsense_mcp.server import create_server
 
 
