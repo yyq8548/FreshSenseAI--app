@@ -31,6 +31,8 @@ exactly one credential:
 
 Startup fails if neither or both are configured. Credentials are forwarded to
 the FreshSense API and are not included in tool output or authentication errors.
+Use plain HTTP only for a loopback development API such as `127.0.0.1` or
+`localhost`; remote FreshSense API targets should use HTTPS.
 `MCP_USE_ANONYMIZED_TELEMETRY=false` is also the process default, but setting it
 explicitly makes the local configuration clear.
 

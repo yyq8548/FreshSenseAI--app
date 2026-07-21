@@ -19,12 +19,10 @@ class MCPConfig:
     bearer_token: str | None = None
     timeout_seconds: float = 10.0
 
-    @classmethod
-    def from_env(cls, environ: Mapping[str, str] | None = None) -> "MCPConfig":
-        values = os.environ if environ is None else environ
-        api_url = values.get("FRESHSENSE_MCP_API_URL", "").strip().rstrip("/")
-        api_key = values.get("FRESHSENSE_MCP_API_KEY", "").strip() or None
-        bearer_token = values.get("FRESHSENSE_MCP_BEARER_TOKEN", "").strip() or None
+    def __post_init__(self) -> None:
+        api_url = self.api_url.strip().rstrip("/")
+        api_key = self.api_key.strip() if self.api_key else None
+        bearer_token = self.bearer_token.strip() if self.bearer_token else None
 
         parsed = urlparse(api_url)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
@@ -35,4 +33,18 @@ class MCPConfig:
             raise MCPConfigurationError(
                 "Configure exactly one FreshSense MCP credential."
             )
+        if self.timeout_seconds <= 0:
+            raise MCPConfigurationError("FreshSense MCP timeout must be positive.")
+
+        object.__setattr__(self, "api_url", api_url)
+        object.__setattr__(self, "api_key", api_key)
+        object.__setattr__(self, "bearer_token", bearer_token)
+
+    @classmethod
+    def from_env(cls, environ: Mapping[str, str] | None = None) -> "MCPConfig":
+        values = os.environ if environ is None else environ
+        api_url = values.get("FRESHSENSE_MCP_API_URL", "").strip().rstrip("/")
+        api_key = values.get("FRESHSENSE_MCP_API_KEY", "").strip() or None
+        bearer_token = values.get("FRESHSENSE_MCP_BEARER_TOKEN", "").strip() or None
+
         return cls(api_url=api_url, api_key=api_key, bearer_token=bearer_token)

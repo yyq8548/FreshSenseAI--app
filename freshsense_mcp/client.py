@@ -8,7 +8,7 @@ import json
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+from urllib.request import build_opener, HTTPRedirectHandler, Request
 
 from freshsense_mcp.config import MCPConfig
 
@@ -44,9 +44,17 @@ class HttpResult:
 RequestSender = Callable[[Request, float], HttpResult]
 
 
+class _RejectRedirects(HTTPRedirectHandler):
+    """Prevent credential-bearing requests from leaving the configured origin."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
 def _send(request: Request, timeout_seconds: float) -> HttpResult:
     try:
-        with urlopen(request, timeout=timeout_seconds) as response:
+        opener = build_opener(_RejectRedirects())
+        with opener.open(request, timeout=timeout_seconds) as response:
             return HttpResult(status_code=response.status, body=response.read())
     except HTTPError as exc:
         return HttpResult(status_code=exc.code, body=b"")
@@ -87,6 +95,8 @@ class FreshSenseApiClient:
 
         request = Request(url, headers=headers, method="GET")
         result = self._sender(request, self._config.timeout_seconds)
+        if 300 <= result.status_code < 400:
+            raise FreshSenseMCPError("FreshSense API redirect was rejected.")
         if result.status_code in {401, 403}:
             raise FreshSenseMCPError(
                 "FreshSense authentication or authorization failed."

@@ -75,37 +75,45 @@ async def run_smoke() -> dict[str, Any]:
             "PYTHONPATH": str(root),
         }
     )
-    client = MCPClient.from_dict(
-        {
-            "mcpServers": {
-                "freshsense": {
-                    "command": sys.executable,
-                    "args": [
-                        "-m",
-                        "freshsense_mcp.server",
-                        "--transport",
-                        "stdio",
-                    ],
-                    "env": child_env,
+    client: MCPClient | None = None
+    try:
+        client = MCPClient.from_dict(
+            {
+                "mcpServers": {
+                    "freshsense": {
+                        "command": sys.executable,
+                        "args": [
+                            "-m",
+                            "freshsense_mcp.server",
+                            "--transport",
+                            "stdio",
+                        ],
+                        "env": child_env,
+                    }
                 }
             }
-        }
-    )
-    try:
-        session = await client.create_session("freshsense")
+        )
+        session = await asyncio.wait_for(
+            client.create_session("freshsense"), timeout=15
+        )
         if session is None:
             raise RuntimeError("mcp-use did not create the FreshSense session.")
-        tools = await session.list_tools()
-        result = await session.call_tool("get_recent_inspections", {"limit": 3})
+        tools = await asyncio.wait_for(session.list_tools(), timeout=10)
+        result = await asyncio.wait_for(
+            session.call_tool("get_recent_inspections", {"limit": 3}), timeout=10
+        )
         return {
             "tool_names": [tool.name for tool in tools],
             "structured_content": result.structuredContent,
         }
     finally:
-        await client.close_all_sessions()
-        api.shutdown()
-        api.server_close()
-        thread.join(timeout=5)
+        try:
+            if client is not None:
+                await asyncio.wait_for(client.close_all_sessions(), timeout=10)
+        finally:
+            api.shutdown()
+            api.server_close()
+            thread.join(timeout=5)
 
 
 if __name__ == "__main__":
