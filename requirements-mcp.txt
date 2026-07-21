@@ -1,0 +1,2 @@
+# Optional standalone MCP gateway runtime. Keep separate from the API runtime.
+mcp-use==1.7.0
