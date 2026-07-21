@@ -122,6 +122,13 @@ configured, it can write a grounded response from the retrieved evidence. The
 deterministic local responder remains available when the provider is disabled
 or unavailable.
 
+An optional [read-only MCP integration](docs/MCP_INTEGRATION.md) uses
+`mcp-use` to expose recent workspace inspection metadata through one typed
+tool. It calls the existing authenticated REST API, preserves workspace
+isolation, omits photos and free-form staff notes, and provides no mutation
+capability. The MCP server is a developer integration, not a public
+unauthenticated endpoint.
+
 Semantic retrieval uses FastEmbed with `BAAI/bge-small-en-v1.5` over the curated
 knowledge base. The collection is currently small enough for in-memory ranking,
 so FreshSense does not claim to have a persistent vector database. Routine
