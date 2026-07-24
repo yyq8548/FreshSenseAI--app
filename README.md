@@ -13,7 +13,7 @@ tomatoes, and pears.
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-2.19-orange)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.139-009688)
-![Tests](https://img.shields.io/badge/tests-189%20Python%20%2B%2010%20web-brightgreen)
+![Tests](https://img.shields.io/badge/tests-207%20Python%20%2B%2010%20web-brightgreen)
 ![Release](https://img.shields.io/badge/release-0.6.0%20Public%20Beta-blueviolet)
 
 ## 60-second product demo
@@ -121,6 +121,13 @@ a hold, discard inventory, or declare food safe. When an OpenAI model is
 configured, it can write a grounded response from the retrieved evidence. The
 deterministic local responder remains available when the provider is disabled
 or unavailable.
+
+An optional [read-only MCP integration](docs/MCP_INTEGRATION.md) uses
+`mcp-use` to expose recent workspace inspection metadata through one typed
+tool. It calls the existing authenticated REST API, preserves workspace
+isolation, omits photos and free-form staff notes, and provides no mutation
+capability. The MCP server is a developer integration, not a public
+unauthenticated endpoint.
 
 Semantic retrieval uses FastEmbed with `BAAI/bge-small-en-v1.5` over the curated
 knowledge base. The collection is currently small enough for in-memory ranking,
